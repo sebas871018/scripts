@@ -736,7 +736,7 @@ function render(){
       {c:'VN',n:'Vietnam',d:'+84',f:'\ud83c\uddfb\ud83c\uddf3'}
     ];
     var selCC=countries[0];
-    function setCC(cc){selCC=cc;ccFlag.textContent=cc.f;ccCode.textContent=cc.d;validate();}
+    function setCC(cc){selCC=cc;ccFlag.textContent=cc.f;ccCode.textContent=cc.d;if(typeof validate==='function')validate();}
     function renderList(filter){
       var h='';
       for(var i=0;i<countries.length;i++){
