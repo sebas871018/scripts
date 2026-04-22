@@ -757,16 +757,15 @@ function render(){
     }
     renderList('');
     setCC(countries[0]);
-    var _ddJustOpened=false;
     ccBtn.addEventListener('mousedown',function(e){
       e.preventDefault();
       e.stopPropagation();
       var show=ccDropdown.style.display==='none';
       if(show){
-        _ddJustOpened=true;
+        window.__psiDDOpen=true;
         ccDropdown.style.display='block';
         ccSearch.value='';renderList('');
-        setTimeout(function(){ccSearch.focus();_ddJustOpened=false;},50);
+        setTimeout(function(){ccSearch.focus();window.__psiDDOpen=false;},100);
         var wrap=ccBtn.closest('.pinput-group');
         var rect=wrap.getBoundingClientRect();
         var spaceBelow=window.innerHeight-rect.bottom-10;
@@ -779,9 +778,14 @@ function render(){
     ccSearch.addEventListener('input',function(){renderList(this.value.toLowerCase());});
     ccSearch.addEventListener('mousedown',function(e){e.stopPropagation();});
     ccDropdown.addEventListener('mousedown',function(e){e.stopPropagation();});
-    document.addEventListener('mousedown',function(){
-      if(!_ddJustOpened){ccDropdown.style.display='none';}
-    });
+    if(!window.__psiDocHandler){
+      window.__psiDocHandler=true;
+      document.addEventListener('mousedown',function(){
+        if(window.__psiDDOpen)return;
+        var dd=document.getElementById('ccDropdown');
+        if(dd)dd.style.display='none';
+      });
+    }
     if(answers.phone){phoneEl.value=answers.phone.replace(/^\+\d+\s*/,'');}
     var validate=function(){
       var nameOk=nameInput.value.trim().length>=2;
