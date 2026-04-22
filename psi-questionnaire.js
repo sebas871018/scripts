@@ -949,7 +949,12 @@ function showResult(){
   if(pdfBtn){pdfBtn.addEventListener('click',function(){
     var btn=this;btn.disabled=true;btn.textContent='Generating PDF...';
     loadJsPDF(function(){
-      generatePDF(verdict,verdictClass,findings,ns,t);
+      try{
+        generatePDF(verdict,verdictClass,findings,ns,t);
+      }catch(err){
+        console.error('PDF generation error:',err);
+        alert('Could not generate PDF: '+(err.message||err));
+      }
       btn.disabled=false;btn.textContent=t.downloadPdfBtn;
     });
   });}
@@ -1042,7 +1047,31 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
 }
 
 function generatePDF(verdict,verdictClass,findings,nextSteps,t){
-
+  function S(s){
+    if(s==null)return '';
+    s=String(s);
+    s=s.replace(/\u2713/g,'[OK]');
+    s=s.replace(/\u2714/g,'[OK]');
+    s=s.replace(/\u2705/g,'[OK]');
+    s=s.replace(/\u2717/g,'[X]');
+    s=s.replace(/\u2716/g,'[X]');
+    s=s.replace(/\u2718/g,'[X]');
+    s=s.replace(/\u274C/g,'[X]');
+    s=s.replace(/\u26A0\uFE0F?/g,'[!]');
+    s=s.replace(/\u2699\uFE0F?/g,'');
+    s=s.replace(/\u2192/g,'->');
+    s=s.replace(/\u2190/g,'<-');
+    s=s.replace(/\u21BB/g,'');
+    s=s.replace(/\u00A7/g,'S');
+    s=s.replace(/[\u2013\u2014]/g,'-');
+    s=s.replace(/[\u2018\u2019]/g,"'");
+    s=s.replace(/[\u201C\u201D]/g,'"');
+    s=s.replace(/\u2026/g,'...');
+    s=s.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'');
+    s=s.replace(/[\uD800-\uDFFF]./g,'');
+    s=s.replace(/[^\x00-\xFF]/g,'?');
+    return s;
+  }
   var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
   var W=210,M=20,CW=W-2*M,y=20;
   var gold='#c9a961',navy='#0a1f44',gray='#5a6680',lightgray='#f0f3f9';
@@ -1059,7 +1088,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.text('Y&S Accounting Brisbane',M,16);
   doc.setFontSize(10);
   doc.setFont('helvetica','normal');
-  doc.text(t.pdfTitle,M,26);
+  doc.text(S(t.pdfTitle),M,26);
   y=44;
   // Client info box
   doc.setFillColor(240,243,249);
@@ -1067,14 +1096,14 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(10,31,68);
   doc.setFontSize(11);
   doc.setFont('helvetica','bold');
-  doc.text(t.pdfPreparedFor+': '+answers.fullName,M+6,y+8);
+  doc.text(S(t.pdfPreparedFor+': '+answers.fullName),M+6,y+8);
   doc.setFont('helvetica','normal');
   doc.setFontSize(9);
   doc.setTextColor(90,102,128);
-  doc.text('Email: '+answers.email,M+6,y+15);
-  doc.text(t.pdfPhone+': '+(answers.phone||'N/A'),M+6,y+21);
+  doc.text(S('Email: '+answers.email),M+6,y+15);
+  doc.text(S(t.pdfPhone+': '+(answers.phone||'N/A')),M+6,y+21);
   var dateStr=new Date().toLocaleDateString('en-AU',{year:'numeric',month:'long',day:'numeric'});
-  doc.text(t.pdfDate+': '+dateStr,CW-10,y+8,{align:'right'});
+  doc.text(S(t.pdfDate+': '+dateStr),CW-10,y+8,{align:'right'});
   y+=36;
   // Verdict box
   var vc=verdictClass==='green'?[46,125,79]:verdictClass==='amber'?[201,122,26]:[179,38,30];
@@ -1084,17 +1113,17 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setFontSize(13);
   doc.setFont('helvetica','bold');
   var vTitle=verdict.title.replace(/^[\u2713\u2717\u26A0\u2714\u2716\u2718\u2705\u274C\u26A0\uFE0F\u2699\uFE0F]\s*/,'');
-  doc.text(vTitle,M+6,y+8);
+  doc.text(S(vTitle),M+6,y+8);
   doc.setFontSize(9);
   doc.setFont('helvetica','normal');
-  doc.text(verdict.text,M+6,y+14,{maxWidth:CW-12});
+  doc.text(S(verdict.text),M+6,y+14,{maxWidth:CW-12});
   y+=24;
   // Q&A Section
   checkPage(20);
   doc.setTextColor(10,31,68);
   doc.setFontSize(12);
   doc.setFont('helvetica','bold');
-  doc.text(t.pdfQA,M,y);
+  doc.text(S(t.pdfQA),M,y);
   y+=4;
   doc.setDrawColor(201,169,97);
   doc.setLineWidth(0.5);
@@ -1105,15 +1134,15 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   for(var i=0;i<qa.length;i++){
     checkPage(12);
     var parts=qa[i].split(': ');
-    var qLabel=parts[0]||'';
-    var aLabel=parts.slice(1).join(': ')||'';
+    var qLabel=S(parts[0]||'');
+    var aLabel=S(parts.slice(1).join(': ')||'');
     doc.setFont('helvetica','bold');
     doc.setTextColor(10,31,68);
     doc.text((i+1)+'. '+qLabel,M,y);
     y+=5;
     doc.setFont('helvetica','normal');
     doc.setTextColor(90,102,128);
-    var lines=doc.splitTextToSize(aLabel,CW-6);
+    var lines=doc.splitTextToSize(aLabel||'-',CW-6);
     doc.text(lines,M+4,y);
     y+=lines.length*4+4;
   }
@@ -1123,7 +1152,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(10,31,68);
   doc.setFontSize(12);
   doc.setFont('helvetica','bold');
-  doc.text(t.findingsHeader,M,y);
+  doc.text(S(t.findingsHeader),M,y);
   y+=4;
   doc.setDrawColor(201,169,97);
   doc.line(M,y,M+CW,y);
@@ -1131,14 +1160,14 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setFontSize(9);
   for(var fi=0;fi<findings.length;fi++){
     checkPage(12);
-    var icon=findings[fi].type==='pass'?'\u2713':findings[fi].type==='fail'?'\u2717':'!';
+    var icon=findings[fi].type==='pass'?'+':findings[fi].type==='fail'?'x':'!';
     var fc=findings[fi].type==='pass'?[46,125,79]:findings[fi].type==='fail'?[179,38,30]:[201,122,26];
     doc.setTextColor(fc[0],fc[1],fc[2]);
     doc.setFont('helvetica','bold');
     doc.text(icon,M,y);
     doc.setFont('helvetica','normal');
     doc.setTextColor(26,37,64);
-    var fl=doc.splitTextToSize(findings[fi].text,CW-8);
+    var fl=doc.splitTextToSize(S(findings[fi].text)||'-',CW-8);
     doc.text(fl,M+6,y);
     y+=fl.length*4+4;
   }
@@ -1148,7 +1177,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(10,31,68);
   doc.setFontSize(12);
   doc.setFont('helvetica','bold');
-  doc.text(t.nextStepsHeader,M,y);
+  doc.text(S(t.nextStepsHeader),M,y);
   y+=4;
   doc.setDrawColor(201,169,97);
   doc.line(M,y,M+CW,y);
@@ -1158,7 +1187,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(26,37,64);
   for(var ni=0;ni<nextSteps.length;ni++){
     checkPage(12);
-    var nl=doc.splitTextToSize('\u2192 '+nextSteps[ni],CW-4);
+    var nl=doc.splitTextToSize('> '+S(nextSteps[ni]),CW-4);
     doc.text(nl,M+2,y);
     y+=nl.length*4+3;
   }
@@ -1168,7 +1197,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(10,31,68);
   doc.setFontSize(12);
   doc.setFont('helvetica','bold');
-  doc.text(t.referencesHeader,M,y);
+  doc.text(S(t.referencesHeader),M,y);
   y+=4;
   doc.setDrawColor(201,169,97);
   doc.line(M,y,M+CW,y);
@@ -1178,7 +1207,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.setTextColor(90,102,128);
   for(var ri=0;ri<t.references.length;ri++){
     checkPage(8);
-    doc.text('\u00A7 '+t.references[ri],M,y);
+    doc.text('- '+S(t.references[ri]),M,y);
     y+=5;
   }
   // Footer disclaimer
@@ -1188,7 +1217,7 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   doc.roundedRect(M,y,CW,20,2,2,'F');
   doc.setFontSize(7);
   doc.setTextColor(90,102,128);
-  var dl=doc.splitTextToSize(t.pdfDisclaimer,CW-12);
+  var dl=doc.splitTextToSize(S(t.pdfDisclaimer),CW-12);
   doc.text(dl,M+6,y+5);
   // Footer bar on each page
   var pages=doc.getNumberOfPages();
