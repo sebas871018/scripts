@@ -527,17 +527,6 @@ var _css=`
 `;
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
-var _jspdfLoading=false;
-function loadJsPDF(cb){
-  if(window.jspdf){cb();return;}
-  if(_jspdfLoading){setTimeout(function(){loadJsPDF(cb);},200);return;}
-  _jspdfLoading=true;
-  var s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
-  s.onload=function(){_jspdfLoading=false;cb();};
-  s.onerror=function(){_jspdfLoading=false;alert('Could not load PDF library. Please check your internet connection and try again.');};
-  document.head.appendChild(s);
-}
 var _phoneCss=document.createElement('style');
 _phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}';
 document.head.appendChild(_phoneCss);
@@ -947,16 +936,12 @@ function showResult(){
   sendAssessment(verdict.title,verdict.text,findings,ns,t);
   var pdfBtn=document.getElementById('pdfDownloadBtn');
   if(pdfBtn){pdfBtn.addEventListener('click',function(){
-    var btn=this;btn.disabled=true;btn.textContent='Generating PDF...';
-    loadJsPDF(function(){
-      try{
-        generatePDF(verdict,verdictClass,findings,ns,t);
-      }catch(err){
-        console.error('PDF generation error:',err);
-        alert('Could not generate PDF: '+(err.message||err));
-      }
-      btn.disabled=false;btn.textContent=t.downloadPdfBtn;
-    });
+    try{
+      openPrintableReport(verdict,verdictClass,findings,ns,t);
+    }catch(err){
+      console.error('PDF report error:',err);
+      alert('Could not open PDF report: '+(err.message||err));
+    }
   });}
 }
 
@@ -1046,270 +1031,107 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
   }
 }
 
-function generatePDF(verdict,verdictClass,findings,nextSteps,t){
-  function S(s){
+function openPrintableReport(verdict,verdictClass,findings,nextSteps,t){
+  function esc(s){
     if(s==null)return '';
-    s=String(s);
-    s=s.replace(/\u2713/g,'[OK]');
-    s=s.replace(/\u2714/g,'[OK]');
-    s=s.replace(/\u2705/g,'[OK]');
-    s=s.replace(/\u2717/g,'[X]');
-    s=s.replace(/\u2716/g,'[X]');
-    s=s.replace(/\u2718/g,'[X]');
-    s=s.replace(/\u274C/g,'[X]');
-    s=s.replace(/\u26A0\uFE0F?/g,'[!]');
-    s=s.replace(/\u2699\uFE0F?/g,'');
-    s=s.replace(/\u2192/g,'->');
-    s=s.replace(/\u2190/g,'<-');
-    s=s.replace(/\u21BB/g,'');
-    s=s.replace(/\u00A7/g,'S');
-    s=s.replace(/[\u2013\u2014]/g,'-');
-    s=s.replace(/[\u2018\u2019]/g,"'");
-    s=s.replace(/[\u201C\u201D]/g,'"');
-    s=s.replace(/\u2026/g,'...');
-    s=s.replace(/[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/g,'');
-    s=s.replace(/[\uD800-\uDFFF]./g,'');
-    s=s.replace(/[^\x00-\xFF]/g,'?');
-    return s;
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   }
-  var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
-  var W=210,M=20,CW=W-2*M,y=20;
-  function addPage(){doc.addPage();y=20;}
-  function checkPage(need){if(y+need>275){addPage();}}
-  // Safe manual word-wrapper. Guaranteed to terminate.
-  function wrap(text,maxW){
-    text=S(text);
-    if(!text||!text.replace(/\s/g,'').length)return ['-'];
-    var words=text.split(/\s+/);
-    if(words.length>200)words=words.slice(0,200);
-    var lines=[];
-    var cur='';
-    var guard=0;
-    for(var i=0;i<words.length&&guard<500;i++){
-      guard++;
-      var w=words[i];
-      if(!w)continue;
-      // Force-break a single word that's wider than the available width
-      var breakGuard=0;
-      while(w.length>1&&doc.getTextWidth(w)>maxW&&breakGuard<50){
-        breakGuard++;
-        // Binary approximation: chop off one char at a time from the right
-        var cut=w.length;
-        while(cut>1&&doc.getTextWidth(w.substring(0,cut))>maxW){cut--;}
-        if(cut<1)cut=1;
-        if(cur){lines.push(cur);cur='';}
-        lines.push(w.substring(0,cut));
-        w=w.substring(cut);
-      }
-      var test=cur?cur+' '+w:w;
-      if(cur&&doc.getTextWidth(test)>maxW){
-        lines.push(cur);
-        cur=w;
-      }else{
-        cur=test;
-      }
-    }
-    if(cur)lines.push(cur);
-    if(lines.length>150)lines=lines.slice(0,150);
-    return lines.length?lines:['-'];
+  var safeName=esc(answers.fullName||'Client');
+  var safeEmail=esc(answers.email||'');
+  var safePhone=esc(answers.phone||'N/A');
+  var dateStr=new Date().toLocaleDateString('en-AU',{year:'numeric',month:'long',day:'numeric'});
+  var vClassColor=verdictClass==='green'?'#2e7d4f':verdictClass==='amber'?'#c97a1a':'#b3261e';
+  var vTitleText=String(verdict.title||'').replace(/^[\u2713\u2717\u26A0\u2714\u2716\u2718\u2705\u274C\u26A0\uFE0F\u2699\uFE0F]\s*/,'');
+  var qa=buildAnswerSummary();
+  var qaHtml='';
+  for(var i=0;i<qa.length;i++){
+    var parts=String(qa[i]||'').split(': ');
+    var qLabel=esc(parts[0]||'');
+    var aLabel=esc(parts.slice(1).join(': ')||'-');
+    qaHtml+='<div class="qa-item"><div class="qa-q">'+(i+1)+'. '+qLabel+'</div><div class="qa-a">'+aLabel+'</div></div>';
   }
-  // Header bar
-  try{
-    doc.setFillColor(10,31,68);
-    doc.rect(0,0,W,32,'F');
-    doc.setFillColor(201,169,97);
-    doc.rect(0,32,W,2,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica','bold');
-    doc.text('Y&S Accounting Brisbane',M,16);
-    doc.setFontSize(10);
-    doc.setFont('helvetica','normal');
-    doc.text(S(t.pdfTitle),M,26);
-    y=44;
-  }catch(e){console.error('PDF header error:',e);y=44;}
-  // Client info box
-  try{
-    doc.setFillColor(240,243,249);
-    doc.roundedRect(M,y,CW,28,3,3,'F');
-    doc.setTextColor(10,31,68);
-    doc.setFontSize(11);
-    doc.setFont('helvetica','bold');
-    doc.text(S(t.pdfPreparedFor+': '+(answers.fullName||'')),M+6,y+8);
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(9);
-    doc.setTextColor(90,102,128);
-    doc.text(S('Email: '+(answers.email||'')),M+6,y+15);
-    doc.text(S(t.pdfPhone+': '+(answers.phone||'N/A')),M+6,y+21);
-    var dateStr=new Date().toLocaleDateString('en-AU',{year:'numeric',month:'long',day:'numeric'});
-    doc.text(S(t.pdfDate+': '+dateStr),CW-10,y+8,{align:'right'});
-    y+=36;
-  }catch(e){console.error('PDF client box error:',e);y+=36;}
-  // Verdict box
-  try{
-    var vc=verdictClass==='green'?[46,125,79]:verdictClass==='amber'?[201,122,26]:[179,38,30];
-    doc.setFillColor(vc[0],vc[1],vc[2]);
-    doc.roundedRect(M,y,CW,18,3,3,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    var vTitle=String(verdict.title||'').replace(/^[\u2713\u2717\u26A0\u2714\u2716\u2718\u2705\u274C\u26A0\uFE0F\u2699\uFE0F]\s*/,'');
-    doc.text(S(vTitle),M+6,y+8);
-    doc.setFontSize(9);
-    doc.setFont('helvetica','normal');
-    var vLines=wrap(verdict.text||'',CW-12);
-    doc.text(vLines[0]||'-',M+6,y+14);
-    y+=24;
-  }catch(e){console.error('PDF verdict error:',e);y+=24;}
-  // Q&A Section
-  try{
-    checkPage(20);
-    doc.setTextColor(10,31,68);
-    doc.setFontSize(12);
-    doc.setFont('helvetica','bold');
-    doc.text(S(t.pdfQA),M,y);
-    y+=4;
-    doc.setDrawColor(201,169,97);
-    doc.setLineWidth(0.5);
-    doc.line(M,y,M+CW,y);
-    y+=6;
-    var qa=buildAnswerSummary();
-    doc.setFontSize(9);
-    for(var i=0;i<qa.length;i++){
-      try{
-        checkPage(12);
-        var parts=String(qa[i]||'').split(': ');
-        var qLabel=S(parts[0]||'');
-        var aLabel=S(parts.slice(1).join(': ')||'');
-        doc.setFont('helvetica','bold');
-        doc.setTextColor(10,31,68);
-        doc.text((i+1)+'. '+qLabel,M,y);
-        y+=5;
-        doc.setFont('helvetica','normal');
-        doc.setTextColor(90,102,128);
-        var lines=wrap(aLabel,CW-6);
-        for(var li=0;li<lines.length;li++){
-          checkPage(6);
-          doc.text(lines[li],M+4,y);
-          y+=4;
-        }
-        y+=4;
-      }catch(e){console.error('PDF QA item '+i+' error:',e);y+=8;}
-    }
-  }catch(e){console.error('PDF QA section error:',e);}
-  // Findings Section
-  try{
-    checkPage(20);
-    y+=4;
-    doc.setTextColor(10,31,68);
-    doc.setFontSize(12);
-    doc.setFont('helvetica','bold');
-    doc.text(S(t.findingsHeader),M,y);
-    y+=4;
-    doc.setDrawColor(201,169,97);
-    doc.line(M,y,M+CW,y);
-    y+=6;
-    doc.setFontSize(9);
-    for(var fi=0;fi<findings.length;fi++){
-      try{
-        checkPage(12);
-        var icon=findings[fi].type==='pass'?'+':findings[fi].type==='fail'?'x':'!';
-        var fc=findings[fi].type==='pass'?[46,125,79]:findings[fi].type==='fail'?[179,38,30]:[201,122,26];
-        doc.setTextColor(fc[0],fc[1],fc[2]);
-        doc.setFont('helvetica','bold');
-        doc.text(icon,M,y);
-        doc.setFont('helvetica','normal');
-        doc.setTextColor(26,37,64);
-        var fl=wrap(findings[fi].text||'',CW-8);
-        for(var fli=0;fli<fl.length;fli++){
-          checkPage(6);
-          doc.text(fl[fli],M+6,y+fli*4);
-        }
-        y+=fl.length*4+4;
-      }catch(e){console.error('PDF finding '+fi+' error:',e);y+=8;}
-    }
-  }catch(e){console.error('PDF findings section error:',e);}
-  // Next Steps
-  try{
-    checkPage(20);
-    y+=4;
-    doc.setTextColor(10,31,68);
-    doc.setFontSize(12);
-    doc.setFont('helvetica','bold');
-    doc.text(S(t.nextStepsHeader),M,y);
-    y+=4;
-    doc.setDrawColor(201,169,97);
-    doc.line(M,y,M+CW,y);
-    y+=6;
-    doc.setFontSize(9);
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(26,37,64);
-    for(var ni=0;ni<nextSteps.length;ni++){
-      try{
-        checkPage(12);
-        var nl=wrap('> '+(nextSteps[ni]||''),CW-4);
-        for(var nli=0;nli<nl.length;nli++){
-          checkPage(6);
-          doc.text(nl[nli],M+2,y+nli*4);
-        }
-        y+=nl.length*4+3;
-      }catch(e){console.error('PDF next step '+ni+' error:',e);y+=6;}
-    }
-  }catch(e){console.error('PDF next steps section error:',e);}
-  // References
-  try{
-    checkPage(20);
-    y+=4;
-    doc.setTextColor(10,31,68);
-    doc.setFontSize(12);
-    doc.setFont('helvetica','bold');
-    doc.text(S(t.referencesHeader),M,y);
-    y+=4;
-    doc.setDrawColor(201,169,97);
-    doc.line(M,y,M+CW,y);
-    y+=6;
-    doc.setFontSize(8);
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(90,102,128);
-    for(var ri=0;ri<t.references.length;ri++){
-      try{
-        checkPage(8);
-        var rl=wrap('- '+(t.references[ri]||''),CW);
-        for(var rli=0;rli<rl.length;rli++){
-          checkPage(5);
-          doc.text(rl[rli],M,y+rli*4);
-        }
-        y+=rl.length*4+1;
-      }catch(e){console.error('PDF reference '+ri+' error:',e);y+=5;}
-    }
-  }catch(e){console.error('PDF references section error:',e);}
-  // Footer disclaimer
-  try{
-    checkPage(30);
-    y+=8;
-    doc.setFillColor(240,243,249);
-    doc.roundedRect(M,y,CW,20,2,2,'F');
-    doc.setFontSize(7);
-    doc.setTextColor(90,102,128);
-    var dl=wrap(t.pdfDisclaimer||'',CW-12);
-    for(var dli=0;dli<dl.length&&dli<5;dli++){
-      doc.text(dl[dli],M+6,y+5+dli*3);
-    }
-  }catch(e){console.error('PDF disclaimer error:',e);}
-  // Footer bar on each page
-  try{
-    var pages=doc.getNumberOfPages();
-    for(var p=1;p<=pages;p++){
-      doc.setPage(p);
-      doc.setFillColor(10,31,68);
-      doc.rect(0,290,W,7,'F');
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(7);
-      doc.text('Y&S Accounting Brisbane | Level 38, 71 Eagle Street, Brisbane QLD 4000 | 1300 189 682 | taxbne.com.au',W/2,294,{align:'center'});
-    }
-  }catch(e){console.error('PDF footer error:',e);}
-  var safeFname=String(answers.fullName||'Client').replace(/[^a-zA-Z0-9]/g,'-').substring(0,50);
-  doc.save('PSI-Assessment-'+safeFname+'.pdf');
+  var findHtml='';
+  for(var fi=0;fi<findings.length;fi++){
+    var fType=findings[fi].type;
+    var fColor=fType==='pass'?'#2e7d4f':fType==='fail'?'#b3261e':'#c97a1a';
+    var fIcon=fType==='pass'?'&#10003;':fType==='fail'?'&#10007;':'!';
+    findHtml+='<div class="finding"><span class="find-icon" style="color:'+fColor+'">'+fIcon+'</span><span class="find-text">'+esc(findings[fi].text||'')+'</span></div>';
+  }
+  var nsHtml='';
+  for(var ni=0;ni<nextSteps.length;ni++){
+    nsHtml+='<li>'+esc(nextSteps[ni]||'')+'</li>';
+  }
+  var refHtml='';
+  for(var ri=0;ri<t.references.length;ri++){
+    refHtml+='<li>'+esc(t.references[ri]||'')+'</li>';
+  }
+  var html=''
+    +'<!DOCTYPE html>'
+    +'<html lang="'+esc(lang||'en')+'">'
+    +'<head>'
+    +'<meta charset="UTF-8">'
+    +'<title>PSI Assessment - '+safeName+'</title>'
+    +'<style>'
+    +'@page{size:A4;margin:15mm 15mm 20mm 15mm;}'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.4;color:#1a2540;background:#fff;}'
+    +'.page{max-width:180mm;margin:0 auto;padding:0;}'
+    +'.header{background:#0a1f44;color:#fff;padding:16px 24px;border-bottom:3px solid #c9a961;margin-bottom:16px;}'
+    +'.header h1{font-size:18pt;margin-bottom:4px;}'
+    +'.header p{font-size:10pt;opacity:0.9;}'
+    +'.client-box{background:#f0f3f9;border-radius:6px;padding:12px 16px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}'
+    +'.client-box .name{font-weight:bold;color:#0a1f44;font-size:11pt;width:100%;margin-bottom:4px;}'
+    +'.client-box .info{color:#5a6680;font-size:9pt;}'
+    +'.verdict{background:'+vClassColor+';color:#fff;border-radius:6px;padding:12px 16px;margin-bottom:16px;}'
+    +'.verdict h2{font-size:13pt;margin-bottom:4px;}'
+    +'.verdict p{font-size:10pt;line-height:1.4;}'
+    +'.section{margin-bottom:14px;page-break-inside:avoid;}'
+    +'.section h3{color:#0a1f44;font-size:12pt;padding-bottom:4px;border-bottom:1px solid #c9a961;margin-bottom:8px;}'
+    +'.qa-item{margin-bottom:8px;}'
+    +'.qa-q{font-weight:bold;color:#0a1f44;font-size:10pt;}'
+    +'.qa-a{color:#5a6680;font-size:9pt;padding-left:12px;margin-top:2px;}'
+    +'.finding{display:flex;gap:8px;margin-bottom:6px;font-size:10pt;align-items:flex-start;}'
+    +'.find-icon{font-weight:bold;min-width:14px;}'
+    +'.find-text{flex:1;}'
+    +'ul{list-style:none;padding-left:0;}'
+    +'ul li{padding:4px 0 4px 16px;position:relative;font-size:10pt;}'
+    +'ul li:before{content:"\u2192";position:absolute;left:0;color:#c9a961;font-weight:bold;}'
+    +'.refs li:before{content:"\u2022";}'
+    +'.refs li{font-size:9pt;color:#5a6680;}'
+    +'.disclaimer{background:#f0f3f9;border-radius:4px;padding:12px 16px;margin-top:16px;font-size:8pt;color:#5a6680;line-height:1.4;page-break-inside:avoid;}'
+    +'.footer{margin-top:16px;padding:8px 16px;background:#0a1f44;color:#fff;text-align:center;font-size:8pt;border-radius:4px;}'
+    +'.btn-print{position:fixed;top:12px;right:12px;background:#0a1f44;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:11pt;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,0.2);}'
+    +'.btn-print:hover{background:#142a5a;}'
+    +'@media print{.btn-print{display:none !important;}body{background:#fff;}.page{max-width:100%;padding:0;}}'
+    +'</style>'
+    +'</head>'
+    +'<body>'
+    +'<button class="btn-print" onclick="window.print()">'+esc(t.downloadPdfBtn||'Download PDF')+'</button>'
+    +'<div class="page">'
+    +'<div class="header"><h1>Y&amp;S Accounting Brisbane</h1><p>'+esc(t.pdfTitle||'')+'</p></div>'
+    +'<div class="client-box"><div class="name">'+esc(t.pdfPreparedFor||'')+': '+safeName+'</div>'
+    +'<div class="info"><strong>Email:</strong> '+safeEmail+'</div>'
+    +'<div class="info"><strong>'+esc(t.pdfPhone||'Phone')+':</strong> '+safePhone+'</div>'
+    +'<div class="info"><strong>'+esc(t.pdfDate||'Date')+':</strong> '+esc(dateStr)+'</div>'
+    +'</div>'
+    +'<div class="verdict"><h2>'+esc(vTitleText)+'</h2><p>'+esc(verdict.text||'')+'</p></div>'
+    +'<div class="section"><h3>'+esc(t.pdfQA||'')+'</h3>'+qaHtml+'</div>'
+    +'<div class="section"><h3>'+esc(t.findingsHeader||'')+'</h3>'+findHtml+'</div>'
+    +'<div class="section"><h3>'+esc(t.nextStepsHeader||'')+'</h3><ul>'+nsHtml+'</ul></div>'
+    +'<div class="section refs"><h3>'+esc(t.referencesHeader||'')+'</h3><ul class="refs">'+refHtml+'</ul></div>'
+    +'<div class="disclaimer">'+esc(t.pdfDisclaimer||'')+'</div>'
+    +'<div class="footer">Y&amp;S Accounting Brisbane | Level 38, 71 Eagle Street, Brisbane QLD 4000 | 1300 189 682 | taxbne.com.au</div>'
+    +'</div>'
+    +'<script>'
+    +'window.addEventListener("load",function(){setTimeout(function(){try{window.print();}catch(e){}},400);});'
+    +'<\/script>'
+    +'</body></html>';
+  var w=window.open('','_blank','width=900,height=800');
+  if(!w){alert('Please allow popups for this site to download your PDF report, then click the button again.');return;}
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
 }
 
 render();
