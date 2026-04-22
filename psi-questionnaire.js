@@ -108,6 +108,7 @@ window.__PSI_T = {
       isPsi: 'Income IS PSI — more than 50% is a reward for personal skills/effort.',
       passResults: 'PASSES the Results Test — qualifies as a Personal Services Business (PSB). PSI rules do NOT apply.',
       failResults: 'Does not pass the Results Test.',
+      unsure80: 'You indicated uncertainty about the 80% rule. If 80% or more of your PSI comes from one client, you cannot self-assess as a PSB and must apply for a PSB Determination from the ATO. Verify this threshold before relying on this assessment.',
       fail80: '80% or more of PSI from one client — cannot self-assess as a PSB. A PSB Determination from the ATO is required, otherwise PSI rules apply.',
       passUnrelated: 'PASSES the Unrelated Clients Test.',
       passEmployment: 'PASSES the Employment Test.',
@@ -258,6 +259,7 @@ window.__PSI_T = {
       isPsi: 'El ingreso SÍ es PSI — más del 50% es recompensa por habilidades/esfuerzo personal.',
       passResults: 'PASA la Prueba de Resultados — califica como Negocio de Servicios Personales (PSB). Las reglas PSI NO aplican.',
       failResults: 'No pasa la Prueba de Resultados.',
+      unsure80: 'Usted indicó incertidumbre sobre la regla del 80%. Si el 80% o más de su PSI proviene de un solo cliente, no puede auto-evaluarse como PSB y debe solicitar una Determinación de PSB al ATO. Verifique este umbral antes de confiar en esta evaluación.',
       fail80: '80% o más del PSI proviene de un solo cliente — no puede auto-evaluarse como PSB. Se requiere una Determinación de PSB del ATO, de lo contrario las reglas PSI aplican.',
       passUnrelated: 'PASA la Prueba de Clientes No Relacionados.',
       passEmployment: 'PASA la Prueba de Empleo.',
@@ -408,6 +410,7 @@ window.__PSI_T = {
       isPsi: 'O rendimento É PSI — mais de 50% é recompensa por habilidades/esforço pessoal.',
       passResults: 'PASSA no Teste de Resultados — qualifica-se como Negócio de Serviços Pessoais (PSB). As regras PSI NÃO se aplicam.',
       failResults: 'Não passa no Teste de Resultados.',
+      unsure80: 'Você indicou incerteza sobre a regra dos 80%. Se 80% ou mais do seu PSI vem de um cliente, você não pode se autoavaliar como PSB e deve solicitar uma Determinação de PSB ao ATO. Verifique este limite antes de confiar nesta avaliação.',
       fail80: '80% ou mais do PSI vem de um cliente — não pode se autoavaliar como PSB. É necessária uma Determinação de PSB do ATO, caso contrário as regras PSI se aplicam.',
       passUnrelated: 'PASSA no Teste de Clientes Não Relacionados.',
       passEmployment: 'PASSA no Teste de Emprego.',
@@ -516,6 +519,78 @@ function loadJsPDF(cb){
 }
 var T = window.__PSI_T;
 
+
+var CONTACT_STEP=99;
+function getNextStep(cur){
+  var a=answers,ql=T[lang].questions.length;
+  if(cur===-1)return 0;
+  if(cur===0){
+    if(a.income_type!=='yes')return CONTACT_STEP;
+    return 1;
+  }
+  if(cur===1){
+    if(a.results_test==='yes')return 5;
+    return 2;
+  }
+  if(cur===2){
+    if(a.eighty_percent==='yes')return CONTACT_STEP;
+    return 3;
+  }
+  if(cur===3)return 4;
+  if(cur===4){
+    var passQ4=a.unrelated_clients==='yes';
+    var passQ5=a.employment_test&&a.employment_test!=='no';
+    if(passQ4||passQ5)return 5;
+    return CONTACT_STEP;
+  }
+  if(cur===5)return CONTACT_STEP;
+  return CONTACT_STEP;
+}
+function getPrevStep(cur){
+  if(cur===CONTACT_STEP){
+    var a=answers;
+    if(a.income_type!=='yes')return 0;
+    if(a.results_test==='yes')return 5;
+    if(a.eighty_percent==='yes')return 2;
+    var passQ4=a.unrelated_clients==='yes';
+    var passQ5=a.employment_test&&a.employment_test!=='no';
+    if(passQ4||passQ5)return 5;
+    return 4;
+  }
+  if(cur===5){
+    var a=answers;
+    if(a.results_test==='yes')return 1;
+    var passQ4=a.unrelated_clients==='yes';
+    var passQ5=a.employment_test&&a.employment_test!=='no';
+    if(passQ4||passQ5)return 4;
+    return 4;
+  }
+  if(cur===4)return 3;
+  if(cur===3)return 2;
+  if(cur===2)return 1;
+  if(cur===1)return 0;
+  return -1;
+}
+function getFlowPosition(){
+  var a=answers,pos=0,s=step;
+  var flow=[0];
+  if(a.income_type==='yes'){
+    flow.push(1);
+    if(a.results_test==='yes'){flow.push(5);}
+    else if(a.results_test){
+      flow.push(2);
+      if(a.eighty_percent!=='yes'){
+        flow.push(3);flow.push(4);
+        var p4=a.unrelated_clients==='yes';
+        var p5=a.employment_test&&a.employment_test!=='no';
+        if(p4||p5)flow.push(5);
+      }
+    }
+  }
+  flow.push(CONTACT_STEP);
+  for(var i=0;i<flow.length;i++){if(flow[i]===s){return {pos:i+1,total:flow.length};}}
+  return {pos:flow.length,total:flow.length};
+}
 var lang=null,answers={},step=-1;
 var mount=document.getElementById(ROOT);
 if(!mount){return;}
@@ -563,8 +638,13 @@ function render(){
   nav.style.display='flex';
   if(step<t.questions.length){
     var q=t.questions[step];
-    progressBar.style.width=(step/(t.questions.length+1)*100)+'%';
-    var html='<div class="pstep-label">'+q.section+'</div><h2 class="pquestion">'+q.q+'</h2><div class="phelp">'+q.help+'</div><div class="popts">';
+    var fp=getFlowPosition();
+    progressBar.style.width=(fp.pos/fp.total*100)+'%';
+    var topic=q.section.replace(/^.*\u2014\s*/,'');
+    var stepWord=lang==='en'?'Step':lang==='es'?'Paso':'Etapa';
+    var ofWord=lang==='en'?' of ':lang==='es'?' de ':' de ';
+    var dynSection=stepWord+' '+fp.pos+ofWord+fp.total+' \u2014 '+topic;
+    var html='<div class="pstep-label">'+dynSection+'</div><h2 class="pquestion">'+q.q+'</h2><div class="phelp">'+q.help+'</div><div class="popts">';
     for(var j=0;j<q.options.length;j++){
       var o=q.options[j];
       html+='<button class="popt '+(answers[q.id]===o.v?'selected':'')+'" data-v="'+o.v+'">'+o.t+'</button>';
@@ -583,9 +663,11 @@ function render(){
     nextBtn.textContent=t.next;
     return;
   }
-  if(step===t.questions.length){
-    progressBar.style.width=(t.questions.length/(t.questions.length+1)*100)+'%';
-    content.innerHTML='<div class="pstep-label">'+t.contactSection+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><input type="tel" id="cPhone" placeholder="'+t.phonePh+'" value="'+(answers.phone||'')+'" autocomplete="tel"></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+  if(step>=t.questions.length||step===CONTACT_STEP){
+    var fp2=getFlowPosition();
+    progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
+    var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><input type="tel" id="cPhone" placeholder="'+t.phonePh+'" value="'+(answers.phone||'')+'" autocomplete="tel"></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
     var phoneInput=document.getElementById('cPhone');
@@ -612,7 +694,7 @@ function render(){
       answers.fullName=name;
       answers.email=email;
       answers.phone=phone;
-      step++;
+      step=CONTACT_STEP+1;
       nextBtn.onclick=defaultNextHandler;
       render();
     };
@@ -640,6 +722,7 @@ function showResult(){
       findings.push({type:'fail',text:f.failResults});
       if(a.eighty_percent==='yes'){psbStatus='needs_determination';findings.push({type:'fail',text:f.fail80});}
       else{
+        if(a.eighty_percent==='unsure'){findings.push({type:'warn',text:f.unsure80});}
         var passesUnrelated=a.unrelated_clients==='yes';
         var passesEmpOrPrem=a.employment_test!=='no';
         if(passesUnrelated||passesEmpOrPrem){
@@ -708,10 +791,12 @@ function getNextSteps(psiApplies,psbStatus,risk){
 }
 
 backBtn.addEventListener('click',function(){
-  if(step>0){step--;nextBtn.onclick=defaultNextHandler;nextBtn.style.display='';render();}
+  if(step>CONTACT_STEP){step=CONTACT_STEP;nextBtn.onclick=defaultNextHandler;nextBtn.style.display='';render();}
+  else if(step===CONTACT_STEP){step=getPrevStep(CONTACT_STEP);nextBtn.onclick=defaultNextHandler;nextBtn.style.display='';render();}
+  else if(step>0){step=getPrevStep(step);nextBtn.onclick=defaultNextHandler;nextBtn.style.display='';render();}
   else if(step===0){step=-1;answers={};nextBtn.style.display='';render();}
 });
-function defaultNextHandler(){step++;render();}
+function defaultNextHandler(){step=getNextStep(step);render();}
 nextBtn.addEventListener('click',defaultNextHandler);
 
 function buildAnswerSummary(){
