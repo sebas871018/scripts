@@ -503,11 +503,17 @@ var _css=`
 `;
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
-var _jspdfReady=false;
-var _jspdfScript=document.createElement('script');
-_jspdfScript.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
-_jspdfScript.onload=function(){_jspdfReady=true;};
-document.head.appendChild(_jspdfScript);
+var _jspdfLoading=false;
+function loadJsPDF(cb){
+  if(window.jspdf){cb();return;}
+  if(_jspdfLoading){setTimeout(function(){loadJsPDF(cb);},200);return;}
+  _jspdfLoading=true;
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+  s.onload=function(){_jspdfLoading=false;cb();};
+  s.onerror=function(){_jspdfLoading=false;alert('Could not load PDF library. Please check your internet connection and try again.');};
+  document.head.appendChild(s);
+}
 var T = window.__PSI_T;
 
 var lang=null,answers={},step=-1;
@@ -675,11 +681,17 @@ function showResult(){
   for(var r=0;r<t.references.length;r++){
     html+='<div class="pfind"><div class="pfind-icon picon-info">\u00A7</div><div>'+t.references[r]+'</div></div>';
   }
-  html+='</div><div style="margin-top:24px;display:flex;flex-wrap:wrap;gap:10px;"><button class="pbtn pbtn-primary" id="pdfDownloadBtn">'+t.downloadPdfBtn+'</button><a href="https://www.taxbne.com.au/contact" class="pbtn pbtn-secondary" style="text-decoration:none;text-align:center;">'+t.consultBtn+'</a><button class="pbtn pbtn-secondary" onclick="location.reload()">'+t.newAssessmentBtn+'</button></div>';
+  html+='</div><div style="margin-top:24px;display:flex;flex-wrap:wrap;gap:10px;"><button class="pbtn pbtn-primary" id="pdfDownloadBtn">'+t.downloadPdfBtn+'</button><a href="https://www.taxbne.com.au/services/tax-planning" class="pbtn pbtn-secondary" style="text-decoration:none;text-align:center;">'+t.consultBtn+'</a><button class="pbtn pbtn-secondary" onclick="location.reload()">'+t.newAssessmentBtn+'</button></div>';
   content.innerHTML=html;
   sendAssessment(verdict.title,verdict.text,findings,ns,t);
   var pdfBtn=document.getElementById('pdfDownloadBtn');
-  if(pdfBtn){pdfBtn.addEventListener('click',function(){generatePDF(verdict,verdictClass,findings,ns,t);});}
+  if(pdfBtn){pdfBtn.addEventListener('click',function(){
+    var btn=this;btn.disabled=true;btn.textContent='Generating PDF...';
+    loadJsPDF(function(){
+      generatePDF(verdict,verdictClass,findings,ns,t);
+      btn.disabled=false;btn.textContent=t.downloadPdfBtn;
+    });
+  });}
 }
 
 function getNextSteps(psiApplies,psbStatus,risk){
@@ -720,35 +732,36 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
   try{
     var f=document.getElementById('wf-psi-form');
     if(!f){return;}
-    document.getElementById('psi-full-name').value=answers.fullName||'';
-    document.getElementById('psi-email').value=answers.email||'';
-    document.getElementById('psi-language').value=lang||'';
-    document.getElementById('psi-verdict-title').value=verdictTitle||'';
-    document.getElementById('psi-verdict-text').value=verdictText||'';
-    var report=[];
-    report.push('PHONE: '+(answers.phone||'N/A'));
-    report.push('');
-    report.push('=== VERDICT ===');
-    report.push(verdictTitle);
-    report.push(verdictText);
-    report.push('');
-    report.push('=== ANSWERS ===');
+    var setField=function(id,val){var el=document.getElementById(id);if(el)el.value=val||'';};
+    setField('psi-full-name',answers.fullName);
+    setField('psi-email',answers.email);
+    setField('psi-phone',answers.phone);
+    setField('psi-language',lang);
+    setField('psi-verdict-title',verdictTitle);
+    setField('psi-verdict-text',verdictText);
+    var sep=' --- ';
+    var report='';
+    report+='PHONE: '+(answers.phone||'N/A');
+    report+=sep;
+    report+='VERDICT: '+verdictTitle+' | '+verdictText;
+    report+=sep;
+    report+='ANSWERS: ';
     var qa=buildAnswerSummary();
-    for(var i=0;i<qa.length;i++){report.push((i+1)+'. '+qa[i]);}
-    report.push('');
-    report.push('=== FINDINGS ===');
+    for(var i=0;i<qa.length;i++){report+=(i+1)+'. '+qa[i]+' | ';}
+    report+=sep;
+    report+='FINDINGS: ';
     for(var j=0;j<findings.length;j++){
       var icon=findings[j].type==='pass'?'[PASS]':findings[j].type==='fail'?'[FAIL]':findings[j].type==='warn'?'[WARN]':'[INFO]';
-      report.push(icon+' '+findings[j].text);
+      report+=icon+' '+findings[j].text+' | ';
     }
-    report.push('');
-    report.push('=== NEXT STEPS ===');
-    for(var k=0;k<nextSteps.length;k++){report.push('> '+nextSteps[k]);}
-    report.push('');
-    report.push('=== REFERENCES ===');
-    for(var r=0;r<t.references.length;r++){report.push('- '+t.references[r]);}
-    document.getElementById('psi-findings').value=report.join('\n');
-    document.getElementById('psi-answers').value=JSON.stringify(answers);
+    report+=sep;
+    report+='NEXT STEPS: ';
+    for(var k=0;k<nextSteps.length;k++){report+='> '+nextSteps[k]+' | ';}
+    report+=sep;
+    report+='REFERENCES: ';
+    for(var r=0;r<t.references.length;r++){report+=t.references[r]+' | ';}
+    setField('psi-findings',report);
+    setField('psi-answers',JSON.stringify(answers));
     var sb=document.getElementById('psi-submit-btn');
     if(sb){sb.click();}
     var el=document.getElementById('submitStatus');
@@ -766,7 +779,7 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
 }
 
 function generatePDF(verdict,verdictClass,findings,nextSteps,t){
-  if(!_jspdfReady||!window.jspdf){alert('PDF library loading, please try again in a moment.');return;}
+
   var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
   var W=210,M=20,CW=W-2*M,y=20;
   var gold='#c9a961',navy='#0a1f44',gray='#5a6680',lightgray='#f0f3f9';
