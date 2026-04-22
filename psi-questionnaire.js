@@ -17,6 +17,13 @@ window.__PSI_T = {
     emailLabel: 'Email address',
     emailPh: 'jane@example.com',
     contactError: 'Please enter a valid name, email and phone number.',
+    errNameEmpty: 'Please enter your full name',
+    errNameInvalid: 'Name can only contain letters, spaces, hyphens and apostrophes',
+    errEmailEmpty: 'Please enter your email address',
+    errEmailInvalid: 'Please enter a valid email address (e.g. jane@example.com)',
+    errPhoneEmpty: 'Please enter your phone number',
+    errPhoneInvalid: 'Phone number can only contain digits',
+    errPhoneTooShort: 'Phone number is too short',
     assessmentFor: 'Assessment for',
     submittedMsg: '✓ Your details have been submitted. Y&S Accounting Brisbane will be in touch to discuss your results.',
     submittingMsg: 'Submitting your details...',
@@ -168,6 +175,13 @@ window.__PSI_T = {
     emailLabel: 'Correo electrónico',
     emailPh: 'juan@ejemplo.com',
     contactError: 'Por favor ingrese un nombre, correo electrónico y teléfono válidos.',
+    errNameEmpty: 'Por favor ingrese su nombre completo',
+    errNameInvalid: 'El nombre solo puede contener letras, espacios, guiones y apóstrofes',
+    errEmailEmpty: 'Por favor ingrese su correo electrónico',
+    errEmailInvalid: 'Por favor ingrese un correo electrónico válido (ej. juan@ejemplo.com)',
+    errPhoneEmpty: 'Por favor ingrese su número de teléfono',
+    errPhoneInvalid: 'El teléfono solo puede contener dígitos',
+    errPhoneTooShort: 'El número de teléfono es demasiado corto',
     assessmentFor: 'Evaluación para',
     submittedMsg: '✓ Sus datos han sido enviados. Y&S Accounting Brisbane se comunicará con usted para analizar sus resultados.',
     submittingMsg: 'Enviando sus datos...',
@@ -319,6 +333,13 @@ window.__PSI_T = {
     emailLabel: 'Endereço de e-mail',
     emailPh: 'joao@exemplo.com',
     contactError: 'Por favor insira um nome, e-mail e telefone válidos.',
+    errNameEmpty: 'Por favor insira seu nome completo',
+    errNameInvalid: 'O nome só pode conter letras, espaços, hifens e apóstrofes',
+    errEmailEmpty: 'Por favor insira seu e-mail',
+    errEmailInvalid: 'Por favor insira um e-mail válido (ex. joao@exemplo.com)',
+    errPhoneEmpty: 'Por favor insira seu número de telefone',
+    errPhoneInvalid: 'O telefone só pode conter dígitos',
+    errPhoneTooShort: 'O número de telefone é muito curto',
     assessmentFor: 'Avaliação para',
     submittedMsg: '✓ Seus dados foram enviados. Y&S Accounting Brisbane entrará em contato para discutir seus resultados.',
     submittingMsg: 'Enviando seus dados...',
@@ -518,7 +539,7 @@ function loadJsPDF(cb){
   document.head.appendChild(s);
 }
 var _phoneCss=document.createElement('style');
-_phoneCss.textContent='#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}';
+_phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}';
 document.head.appendChild(_phoneCss);
 var T = window.__PSI_T;
 
@@ -677,7 +698,7 @@ function render(){
     var fp2=getFlowPosition();
     progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
     var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
-    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"><div class="pfield-err" id="cNameErr"></div></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"><div class="pfield-err" id="cEmailErr"></div></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel" inputmode="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div><div class="pfield-err" id="cPhoneErr"></div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
     var phoneEl=document.getElementById('cPhone');
@@ -787,29 +808,70 @@ function render(){
       });
     }
     if(answers.phone){phoneEl.value=answers.phone.replace(/^\+\d+\s*/,'');}
+    var nameErrEl=document.getElementById('cNameErr');
+    var emailErrEl=document.getElementById('cEmailErr');
+    var phoneErrEl=document.getElementById('cPhoneErr');
+    var touched={name:!!answers.fullName,email:!!answers.email,phone:!!answers.phone};
+    function validateName(v){
+      v=v.trim();
+      if(v.length===0)return t.errNameEmpty;
+      if(v.length<2)return t.errNameEmpty;
+      if(!/^[a-zA-Z\u00C0-\u024F\u1E00-\u1EFF\s\-'.]+$/.test(v))return t.errNameInvalid;
+      return '';
+    }
+    function validateEmail(v){
+      v=v.trim();
+      if(v.length===0)return t.errEmailEmpty;
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))return t.errEmailInvalid;
+      return '';
+    }
+    function validatePhone(v){
+      v=v.trim();
+      if(v.length===0)return t.errPhoneEmpty;
+      if(!/^[\d\s\-()]+$/.test(v))return t.errPhoneInvalid;
+      var digits=v.replace(/[\s\-()]/g,'');
+      if(digits.length<6)return t.errPhoneTooShort;
+      return '';
+    }
+    function showFieldError(input,errEl,msg){
+      if(msg){errEl.textContent=msg;errEl.style.display='block';input.classList.add('pinput-invalid');}
+      else{errEl.textContent='';errEl.style.display='none';input.classList.remove('pinput-invalid');}
+    }
     var validate=function(){
-      var nameOk=nameInput.value.trim().length>=2;
-      var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
-      var phoneOk=phoneEl.value.trim().replace(/[\s\-()]/g,'').length>=6;
-      nextBtn.disabled=!(nameOk&&emailOk&&phoneOk);
+      var nameMsg=validateName(nameInput.value);
+      var emailMsg=validateEmail(emailInput.value);
+      var phoneMsg=validatePhone(phoneEl.value);
+      if(touched.name)showFieldError(nameInput,nameErrEl,nameMsg);
+      if(touched.email)showFieldError(emailInput,emailErrEl,emailMsg);
+      if(touched.phone)showFieldError(phoneEl,phoneErrEl,phoneMsg);
+      nextBtn.disabled=!(!nameMsg&&!emailMsg&&!phoneMsg);
+      return !nameMsg&&!emailMsg&&!phoneMsg;
     };
-    nameInput.addEventListener('input',validate);
-    emailInput.addEventListener('input',validate);
-    phoneEl.addEventListener('input',validate);
+    nameInput.addEventListener('input',function(){validate();});
+    emailInput.addEventListener('input',function(){validate();});
+    phoneEl.addEventListener('input',function(){
+      var cleaned=this.value.replace(/[^\d\s\-()+]/g,'');
+      if(cleaned!==this.value){this.value=cleaned;}
+      validate();
+    });
+    nameInput.addEventListener('blur',function(){touched.name=true;validate();});
+    emailInput.addEventListener('blur',function(){touched.email=true;validate();});
+    phoneEl.addEventListener('blur',function(){touched.phone=true;validate();});
     validate();
     backBtn.style.visibility='visible';
     nextBtn.textContent=t.seeResult;
     nextBtn.onclick=function(){
-      var name=nameInput.value.trim();
-      var email=emailInput.value.trim();
-      var phone=selCC.d+' '+phoneEl.value.trim();
-      if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||phoneEl.value.trim().replace(/[\s\-()]/g,'').length<6){
+      touched.name=touched.email=touched.phone=true;
+      if(!validate()){
         document.getElementById('cErr').textContent=t.contactError;
+        var firstInvalid=nameErrEl.textContent?nameInput:emailErrEl.textContent?emailInput:phoneEl;
+        firstInvalid.focus();
         return;
       }
-      answers.fullName=name;
-      answers.email=email;
-      answers.phone=phone;
+      document.getElementById('cErr').textContent='';
+      answers.fullName=nameInput.value.trim();
+      answers.email=emailInput.value.trim();
+      answers.phone=selCC.d+' '+phoneEl.value.trim();
       step=CONTACT_STEP+1;
       nextBtn.onclick=defaultNextHandler;
       render();
