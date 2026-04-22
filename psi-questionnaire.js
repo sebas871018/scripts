@@ -511,10 +511,10 @@ function loadITI(cb){
   if(_itiReady&&window.intlTelInput){cb();return;}
   var css=document.createElement('link');
   css.rel='stylesheet';
-  css.href='https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/css/intlTelInput.min.css';
+  css.href='https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/css/intlTelInput.min.css';
   document.head.appendChild(css);
   var s=document.createElement('script');
-  s.src='https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/js/intlTelInput.min.js';
+  s.src='https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/intlTelInput.min.js';
   s.onload=function(){_itiReady=true;cb();};
   document.head.appendChild(s);
 }
@@ -702,7 +702,7 @@ function render(){
           initialCountry:'au',
           preferredCountries:['au','co','br','us','gb','nz'],
           separateDialCode:true,
-          utilsScript:'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/js/utils.min.js'
+          utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/utils.js'
         });
         if(answers.phone){itiInstance.setNumber(answers.phone);}
       }
