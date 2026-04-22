@@ -12,6 +12,9 @@ window.__PSI_T = {
     contactHelp: 'Enter your details below and our team at Y&S Accounting will reach out to review your PSI assessment results, answer your questions, and discuss recommended next steps.',
     phoneLabel: 'Phone number',
     phonePh: '+61 400 000 000',
+    commentsLabel: 'Additional comments (optional)',
+    commentsPh: 'Tell us briefly why you are completing this assessment and any context that may help us review your situation (e.g. current structure, recent changes, specific concerns).',
+    commentsHelp: 'Maximum 1000 characters.',
     fullNameLabel: 'Full name',
     fullNamePh: 'Jane Smith',
     emailLabel: 'Email address',
@@ -37,6 +40,7 @@ window.__PSI_T = {
     pdfPreparedFor: 'Prepared for',
     pdfDate: 'Date',
     pdfPhone: 'Phone',
+    pdfCommentsHeader: 'Additional Context from Client',
     pdfQA: 'Your Answers',
     pdfDisclaimer: 'This assessment is a preliminary guide only and does not constitute tax advice. PSB determinations, Part IVA risk, and restructure decisions should be confirmed with a qualified tax adviser. Y&S Accounting Brisbane.',
     questions: [
@@ -170,6 +174,9 @@ window.__PSI_T = {
     contactHelp: 'Ingrese sus datos a continuación y nuestro equipo de Y&S Accounting se comunicará con usted para revisar los resultados de su evaluación PSI, responder sus preguntas y analizar los próximos pasos recomendados.',
     phoneLabel: 'Número de teléfono',
     phonePh: '+61 400 000 000',
+    commentsLabel: 'Comentarios adicionales (opcional)',
+    commentsPh: 'Cuéntenos brevemente por qué está completando esta evaluación y cualquier contexto que pueda ayudarnos a revisar su situación (ej. estructura actual, cambios recientes, inquietudes específicas).',
+    commentsHelp: 'Máximo 1000 caracteres.',
     fullNameLabel: 'Nombre completo',
     fullNamePh: 'Juan Pérez',
     emailLabel: 'Correo electrónico',
@@ -195,6 +202,7 @@ window.__PSI_T = {
     pdfPreparedFor: 'Preparado para',
     pdfDate: 'Fecha',
     pdfPhone: 'Teléfono',
+    pdfCommentsHeader: 'Contexto Adicional del Cliente',
     pdfQA: 'Sus Respuestas',
     pdfDisclaimer: 'Esta evaluación es solo una guía preliminar y no constituye asesoramiento fiscal. Las determinaciones de PSB, el riesgo de la Parte IVA y las decisiones de reestructuración deben ser confirmadas con un asesor fiscal calificado. Y&S Accounting Brisbane.',
     questions: [
@@ -328,6 +336,9 @@ window.__PSI_T = {
     contactHelp: 'Insira seus dados abaixo e nossa equipe da Y&S Accounting entrará em contato para revisar os resultados da sua avaliação PSI, responder suas perguntas e discutir os próximos passos recomendados.',
     phoneLabel: 'Número de telefone',
     phonePh: '+61 400 000 000',
+    commentsLabel: 'Comentários adicionais (opcional)',
+    commentsPh: 'Diga-nos brevemente por que está completando esta avaliação e qualquer contexto que possa nos ajudar a revisar sua situação (ex. estrutura atual, mudanças recentes, preocupações específicas).',
+    commentsHelp: 'Máximo 1000 caracteres.',
     fullNameLabel: 'Nome completo',
     fullNamePh: 'João Silva',
     emailLabel: 'Endereço de e-mail',
@@ -353,6 +364,7 @@ window.__PSI_T = {
     pdfPreparedFor: 'Preparado para',
     pdfDate: 'Data',
     pdfPhone: 'Telefone',
+    pdfCommentsHeader: 'Contexto Adicional do Cliente',
     pdfQA: 'Suas Respostas',
     pdfDisclaimer: 'Esta avaliação é apenas um guia preliminar e não constitui aconselhamento fiscal. Determinações de PSB, risco da Parte IVA e decisões de reestruturação devem ser confirmadas com um consultor fiscal qualificado. Y&S Accounting Brisbane.',
     questions: [
@@ -528,7 +540,7 @@ var _css=`
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
 var _phoneCss=document.createElement('style');
-_phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}';
+_phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}#psi-app .pcomments{width:100%;min-height:100px;padding:10px 12px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;outline:none;resize:vertical;line-height:1.5;box-sizing:border-box;}#psi-app .pcomments:focus{border-color:#0a1f44;}#psi-app .pcomments-count{font-size:12px;color:#5a6680;margin-top:4px;text-align:right;}';
 document.head.appendChild(_phoneCss);
 var T = window.__PSI_T;
 
@@ -687,7 +699,7 @@ function render(){
     var fp2=getFlowPosition();
     progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
     var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
-    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"><div class="pfield-err" id="cNameErr"></div></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"><div class="pfield-err" id="cEmailErr"></div></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel" inputmode="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div><div class="pfield-err" id="cPhoneErr"></div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"><div class="pfield-err" id="cNameErr"></div></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"><div class="pfield-err" id="cEmailErr"></div></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel" inputmode="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div><div class="pfield-err" id="cPhoneErr"></div></div><div class="pinput-group"><label for="cComments">'+t.commentsLabel+'</label><textarea id="cComments" class="pcomments" placeholder="'+t.commentsPh.replace(/"/g,'&quot;')+'" maxlength="1000" rows="4">'+(answers.comments||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea><div class="pcomments-count"><span id="cCommentsCount">'+(answers.comments?answers.comments.length:0)+'</span> / 1000</div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
     var phoneEl=document.getElementById('cPhone');
@@ -846,6 +858,13 @@ function render(){
     nameInput.addEventListener('blur',function(){touched.name=true;validate();});
     emailInput.addEventListener('blur',function(){touched.email=true;validate();});
     phoneEl.addEventListener('blur',function(){touched.phone=true;validate();});
+    var commentsEl=document.getElementById('cComments');
+    var commentsCountEl=document.getElementById('cCommentsCount');
+    if(commentsEl&&commentsCountEl){
+      commentsEl.addEventListener('input',function(){
+        commentsCountEl.textContent=commentsEl.value.length;
+      });
+    }
     validate();
     backBtn.style.visibility='visible';
     nextBtn.textContent=t.seeResult;
@@ -861,6 +880,7 @@ function render(){
       answers.fullName=nameInput.value.trim();
       answers.email=emailInput.value.trim();
       answers.phone=selCC.d+' '+phoneEl.value.trim();
+      answers.comments=commentsEl?commentsEl.value.trim().substring(0,1000):'';
       step=CONTACT_STEP+1;
       nextBtn.onclick=defaultNextHandler;
       render();
@@ -989,12 +1009,15 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
     setField('psi-full-name',answers.fullName);
     setField('psi-email',answers.email);
     setField('psi-phone',answers.phone);
+    setField('psi-comments',answers.comments);
     setField('psi-language',lang);
     setField('psi-verdict-title',verdictTitle);
     setField('psi-verdict-text',verdictText);
     var sep=' --- ';
     var report='';
     report+='PHONE: '+(answers.phone||'N/A');
+    report+=sep;
+    report+='COMMENTS: '+(answers.comments||'(none provided)');
     report+=sep;
     report+='VERDICT: '+verdictTitle+' | '+verdictText;
     report+=sep;
@@ -1087,6 +1110,7 @@ function openPrintableReport(verdict,verdictClass,findings,nextSteps,t){
     +'.verdict p{font-size:10pt;line-height:1.4;}'
     +'.section{margin-bottom:14px;page-break-inside:avoid;}'
     +'.section h3{color:#0a1f44;font-size:12pt;padding-bottom:4px;border-bottom:1px solid #c9a961;margin-bottom:8px;}'
+    +'.comments-body{background:#f7f4ec;border-left:3px solid #c9a961;padding:10px 12px;font-size:10pt;color:#1a2540;line-height:1.5;font-style:italic;}'
     +'.qa-item{margin-bottom:8px;}'
     +'.qa-q{font-weight:bold;color:#0a1f44;font-size:10pt;}'
     +'.qa-a{color:#5a6680;font-size:9pt;padding-left:12px;margin-top:2px;}'
@@ -1115,6 +1139,7 @@ function openPrintableReport(verdict,verdictClass,findings,nextSteps,t){
     +'<div class="info"><strong>'+esc(t.pdfDate||'Date')+':</strong> '+esc(dateStr)+'</div>'
     +'</div>'
     +'<div class="verdict"><h2>'+esc(vTitleText)+'</h2><p>'+esc(verdict.text||'')+'</p></div>'
+    +(answers.comments?'<div class="section comments-section"><h3>'+esc(t.pdfCommentsHeader||'Additional Context from Client')+'</h3><div class="comments-body">'+esc(answers.comments).replace(/\n/g,'<br>')+'</div></div>':'')
     +'<div class="section"><h3>'+esc(t.pdfQA||'')+'</h3>'+qaHtml+'</div>'
     +'<div class="section"><h3>'+esc(t.findingsHeader||'')+'</h3>'+findHtml+'</div>'
     +'<div class="section"><h3>'+esc(t.nextStepsHeader||'')+'</h3><ul>'+nsHtml+'</ul></div>'
