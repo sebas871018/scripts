@@ -1074,163 +1074,242 @@ function generatePDF(verdict,verdictClass,findings,nextSteps,t){
   }
   var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
   var W=210,M=20,CW=W-2*M,y=20;
-  var gold='#c9a961',navy='#0a1f44',gray='#5a6680',lightgray='#f0f3f9';
   function addPage(){doc.addPage();y=20;}
   function checkPage(need){if(y+need>275){addPage();}}
-  // Header bar
-  doc.setFillColor(10,31,68);
-  doc.rect(0,0,W,32,'F');
-  doc.setFillColor(201,169,97);
-  doc.rect(0,32,W,2,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(18);
-  doc.setFont('helvetica','bold');
-  doc.text('Y&S Accounting Brisbane',M,16);
-  doc.setFontSize(10);
-  doc.setFont('helvetica','normal');
-  doc.text(S(t.pdfTitle),M,26);
-  y=44;
-  // Client info box
-  doc.setFillColor(240,243,249);
-  doc.roundedRect(M,y,CW,28,3,3,'F');
-  doc.setTextColor(10,31,68);
-  doc.setFontSize(11);
-  doc.setFont('helvetica','bold');
-  doc.text(S(t.pdfPreparedFor+': '+answers.fullName),M+6,y+8);
-  doc.setFont('helvetica','normal');
-  doc.setFontSize(9);
-  doc.setTextColor(90,102,128);
-  doc.text(S('Email: '+answers.email),M+6,y+15);
-  doc.text(S(t.pdfPhone+': '+(answers.phone||'N/A')),M+6,y+21);
-  var dateStr=new Date().toLocaleDateString('en-AU',{year:'numeric',month:'long',day:'numeric'});
-  doc.text(S(t.pdfDate+': '+dateStr),CW-10,y+8,{align:'right'});
-  y+=36;
-  // Verdict box
-  var vc=verdictClass==='green'?[46,125,79]:verdictClass==='amber'?[201,122,26]:[179,38,30];
-  doc.setFillColor(vc[0],vc[1],vc[2]);
-  doc.roundedRect(M,y,CW,18,3,3,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13);
-  doc.setFont('helvetica','bold');
-  var vTitle=verdict.title.replace(/^[\u2713\u2717\u26A0\u2714\u2716\u2718\u2705\u274C\u26A0\uFE0F\u2699\uFE0F]\s*/,'');
-  doc.text(S(vTitle),M+6,y+8);
-  doc.setFontSize(9);
-  doc.setFont('helvetica','normal');
-  doc.text(S(verdict.text),M+6,y+14,{maxWidth:CW-12});
-  y+=24;
-  // Q&A Section
-  checkPage(20);
-  doc.setTextColor(10,31,68);
-  doc.setFontSize(12);
-  doc.setFont('helvetica','bold');
-  doc.text(S(t.pdfQA),M,y);
-  y+=4;
-  doc.setDrawColor(201,169,97);
-  doc.setLineWidth(0.5);
-  doc.line(M,y,M+CW,y);
-  y+=6;
-  var qa=buildAnswerSummary();
-  doc.setFontSize(9);
-  for(var i=0;i<qa.length;i++){
-    checkPage(12);
-    var parts=qa[i].split(': ');
-    var qLabel=S(parts[0]||'');
-    var aLabel=S(parts.slice(1).join(': ')||'');
-    doc.setFont('helvetica','bold');
-    doc.setTextColor(10,31,68);
-    doc.text((i+1)+'. '+qLabel,M,y);
-    y+=5;
-    doc.setFont('helvetica','normal');
-    doc.setTextColor(90,102,128);
-    var lines=doc.splitTextToSize(aLabel||'-',CW-6);
-    doc.text(lines,M+4,y);
-    y+=lines.length*4+4;
+  // Safe manual word-wrapper. Guaranteed to terminate.
+  function wrap(text,maxW){
+    text=S(text);
+    if(!text||!text.replace(/\s/g,'').length)return ['-'];
+    var words=text.split(/\s+/);
+    if(words.length>200)words=words.slice(0,200);
+    var lines=[];
+    var cur='';
+    var guard=0;
+    for(var i=0;i<words.length&&guard<500;i++){
+      guard++;
+      var w=words[i];
+      if(!w)continue;
+      // Force-break a single word that's wider than the available width
+      var breakGuard=0;
+      while(w.length>1&&doc.getTextWidth(w)>maxW&&breakGuard<50){
+        breakGuard++;
+        // Binary approximation: chop off one char at a time from the right
+        var cut=w.length;
+        while(cut>1&&doc.getTextWidth(w.substring(0,cut))>maxW){cut--;}
+        if(cut<1)cut=1;
+        if(cur){lines.push(cur);cur='';}
+        lines.push(w.substring(0,cut));
+        w=w.substring(cut);
+      }
+      var test=cur?cur+' '+w:w;
+      if(cur&&doc.getTextWidth(test)>maxW){
+        lines.push(cur);
+        cur=w;
+      }else{
+        cur=test;
+      }
+    }
+    if(cur)lines.push(cur);
+    if(lines.length>150)lines=lines.slice(0,150);
+    return lines.length?lines:['-'];
   }
-  // Findings Section
-  checkPage(20);
-  y+=4;
-  doc.setTextColor(10,31,68);
-  doc.setFontSize(12);
-  doc.setFont('helvetica','bold');
-  doc.text(S(t.findingsHeader),M,y);
-  y+=4;
-  doc.setDrawColor(201,169,97);
-  doc.line(M,y,M+CW,y);
-  y+=6;
-  doc.setFontSize(9);
-  for(var fi=0;fi<findings.length;fi++){
-    checkPage(12);
-    var icon=findings[fi].type==='pass'?'+':findings[fi].type==='fail'?'x':'!';
-    var fc=findings[fi].type==='pass'?[46,125,79]:findings[fi].type==='fail'?[179,38,30]:[201,122,26];
-    doc.setTextColor(fc[0],fc[1],fc[2]);
+  // Header bar
+  try{
+    doc.setFillColor(10,31,68);
+    doc.rect(0,0,W,32,'F');
+    doc.setFillColor(201,169,97);
+    doc.rect(0,32,W,2,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(18);
     doc.setFont('helvetica','bold');
-    doc.text(icon,M,y);
+    doc.text('Y&S Accounting Brisbane',M,16);
+    doc.setFontSize(10);
+    doc.setFont('helvetica','normal');
+    doc.text(S(t.pdfTitle),M,26);
+    y=44;
+  }catch(e){console.error('PDF header error:',e);y=44;}
+  // Client info box
+  try{
+    doc.setFillColor(240,243,249);
+    doc.roundedRect(M,y,CW,28,3,3,'F');
+    doc.setTextColor(10,31,68);
+    doc.setFontSize(11);
+    doc.setFont('helvetica','bold');
+    doc.text(S(t.pdfPreparedFor+': '+(answers.fullName||'')),M+6,y+8);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(90,102,128);
+    doc.text(S('Email: '+(answers.email||'')),M+6,y+15);
+    doc.text(S(t.pdfPhone+': '+(answers.phone||'N/A')),M+6,y+21);
+    var dateStr=new Date().toLocaleDateString('en-AU',{year:'numeric',month:'long',day:'numeric'});
+    doc.text(S(t.pdfDate+': '+dateStr),CW-10,y+8,{align:'right'});
+    y+=36;
+  }catch(e){console.error('PDF client box error:',e);y+=36;}
+  // Verdict box
+  try{
+    var vc=verdictClass==='green'?[46,125,79]:verdictClass==='amber'?[201,122,26]:[179,38,30];
+    doc.setFillColor(vc[0],vc[1],vc[2]);
+    doc.roundedRect(M,y,CW,18,3,3,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica','bold');
+    var vTitle=String(verdict.title||'').replace(/^[\u2713\u2717\u26A0\u2714\u2716\u2718\u2705\u274C\u26A0\uFE0F\u2699\uFE0F]\s*/,'');
+    doc.text(S(vTitle),M+6,y+8);
+    doc.setFontSize(9);
+    doc.setFont('helvetica','normal');
+    var vLines=wrap(verdict.text||'',CW-12);
+    doc.text(vLines[0]||'-',M+6,y+14);
+    y+=24;
+  }catch(e){console.error('PDF verdict error:',e);y+=24;}
+  // Q&A Section
+  try{
+    checkPage(20);
+    doc.setTextColor(10,31,68);
+    doc.setFontSize(12);
+    doc.setFont('helvetica','bold');
+    doc.text(S(t.pdfQA),M,y);
+    y+=4;
+    doc.setDrawColor(201,169,97);
+    doc.setLineWidth(0.5);
+    doc.line(M,y,M+CW,y);
+    y+=6;
+    var qa=buildAnswerSummary();
+    doc.setFontSize(9);
+    for(var i=0;i<qa.length;i++){
+      try{
+        checkPage(12);
+        var parts=String(qa[i]||'').split(': ');
+        var qLabel=S(parts[0]||'');
+        var aLabel=S(parts.slice(1).join(': ')||'');
+        doc.setFont('helvetica','bold');
+        doc.setTextColor(10,31,68);
+        doc.text((i+1)+'. '+qLabel,M,y);
+        y+=5;
+        doc.setFont('helvetica','normal');
+        doc.setTextColor(90,102,128);
+        var lines=wrap(aLabel,CW-6);
+        for(var li=0;li<lines.length;li++){
+          checkPage(6);
+          doc.text(lines[li],M+4,y);
+          y+=4;
+        }
+        y+=4;
+      }catch(e){console.error('PDF QA item '+i+' error:',e);y+=8;}
+    }
+  }catch(e){console.error('PDF QA section error:',e);}
+  // Findings Section
+  try{
+    checkPage(20);
+    y+=4;
+    doc.setTextColor(10,31,68);
+    doc.setFontSize(12);
+    doc.setFont('helvetica','bold');
+    doc.text(S(t.findingsHeader),M,y);
+    y+=4;
+    doc.setDrawColor(201,169,97);
+    doc.line(M,y,M+CW,y);
+    y+=6;
+    doc.setFontSize(9);
+    for(var fi=0;fi<findings.length;fi++){
+      try{
+        checkPage(12);
+        var icon=findings[fi].type==='pass'?'+':findings[fi].type==='fail'?'x':'!';
+        var fc=findings[fi].type==='pass'?[46,125,79]:findings[fi].type==='fail'?[179,38,30]:[201,122,26];
+        doc.setTextColor(fc[0],fc[1],fc[2]);
+        doc.setFont('helvetica','bold');
+        doc.text(icon,M,y);
+        doc.setFont('helvetica','normal');
+        doc.setTextColor(26,37,64);
+        var fl=wrap(findings[fi].text||'',CW-8);
+        for(var fli=0;fli<fl.length;fli++){
+          checkPage(6);
+          doc.text(fl[fli],M+6,y+fli*4);
+        }
+        y+=fl.length*4+4;
+      }catch(e){console.error('PDF finding '+fi+' error:',e);y+=8;}
+    }
+  }catch(e){console.error('PDF findings section error:',e);}
+  // Next Steps
+  try{
+    checkPage(20);
+    y+=4;
+    doc.setTextColor(10,31,68);
+    doc.setFontSize(12);
+    doc.setFont('helvetica','bold');
+    doc.text(S(t.nextStepsHeader),M,y);
+    y+=4;
+    doc.setDrawColor(201,169,97);
+    doc.line(M,y,M+CW,y);
+    y+=6;
+    doc.setFontSize(9);
     doc.setFont('helvetica','normal');
     doc.setTextColor(26,37,64);
-    var fl=doc.splitTextToSize(S(findings[fi].text)||'-',CW-8);
-    doc.text(fl,M+6,y);
-    y+=fl.length*4+4;
-  }
-  // Next Steps
-  checkPage(20);
-  y+=4;
-  doc.setTextColor(10,31,68);
-  doc.setFontSize(12);
-  doc.setFont('helvetica','bold');
-  doc.text(S(t.nextStepsHeader),M,y);
-  y+=4;
-  doc.setDrawColor(201,169,97);
-  doc.line(M,y,M+CW,y);
-  y+=6;
-  doc.setFontSize(9);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(26,37,64);
-  for(var ni=0;ni<nextSteps.length;ni++){
-    checkPage(12);
-    var nl=doc.splitTextToSize('> '+S(nextSteps[ni]),CW-4);
-    doc.text(nl,M+2,y);
-    y+=nl.length*4+3;
-  }
+    for(var ni=0;ni<nextSteps.length;ni++){
+      try{
+        checkPage(12);
+        var nl=wrap('> '+(nextSteps[ni]||''),CW-4);
+        for(var nli=0;nli<nl.length;nli++){
+          checkPage(6);
+          doc.text(nl[nli],M+2,y+nli*4);
+        }
+        y+=nl.length*4+3;
+      }catch(e){console.error('PDF next step '+ni+' error:',e);y+=6;}
+    }
+  }catch(e){console.error('PDF next steps section error:',e);}
   // References
-  checkPage(20);
-  y+=4;
-  doc.setTextColor(10,31,68);
-  doc.setFontSize(12);
-  doc.setFont('helvetica','bold');
-  doc.text(S(t.referencesHeader),M,y);
-  y+=4;
-  doc.setDrawColor(201,169,97);
-  doc.line(M,y,M+CW,y);
-  y+=6;
-  doc.setFontSize(8);
-  doc.setFont('helvetica','normal');
-  doc.setTextColor(90,102,128);
-  for(var ri=0;ri<t.references.length;ri++){
-    checkPage(8);
-    doc.text('- '+S(t.references[ri]),M,y);
-    y+=5;
-  }
+  try{
+    checkPage(20);
+    y+=4;
+    doc.setTextColor(10,31,68);
+    doc.setFontSize(12);
+    doc.setFont('helvetica','bold');
+    doc.text(S(t.referencesHeader),M,y);
+    y+=4;
+    doc.setDrawColor(201,169,97);
+    doc.line(M,y,M+CW,y);
+    y+=6;
+    doc.setFontSize(8);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(90,102,128);
+    for(var ri=0;ri<t.references.length;ri++){
+      try{
+        checkPage(8);
+        var rl=wrap('- '+(t.references[ri]||''),CW);
+        for(var rli=0;rli<rl.length;rli++){
+          checkPage(5);
+          doc.text(rl[rli],M,y+rli*4);
+        }
+        y+=rl.length*4+1;
+      }catch(e){console.error('PDF reference '+ri+' error:',e);y+=5;}
+    }
+  }catch(e){console.error('PDF references section error:',e);}
   // Footer disclaimer
-  checkPage(30);
-  y+=8;
-  doc.setFillColor(240,243,249);
-  doc.roundedRect(M,y,CW,20,2,2,'F');
-  doc.setFontSize(7);
-  doc.setTextColor(90,102,128);
-  var dl=doc.splitTextToSize(S(t.pdfDisclaimer),CW-12);
-  doc.text(dl,M+6,y+5);
-  // Footer bar on each page
-  var pages=doc.getNumberOfPages();
-  for(var p=1;p<=pages;p++){
-    doc.setPage(p);
-    doc.setFillColor(10,31,68);
-    doc.rect(0,290,W,7,'F');
-    doc.setTextColor(255,255,255);
+  try{
+    checkPage(30);
+    y+=8;
+    doc.setFillColor(240,243,249);
+    doc.roundedRect(M,y,CW,20,2,2,'F');
     doc.setFontSize(7);
-    doc.text('Y&S Accounting Brisbane | Level 38, 71 Eagle Street, Brisbane QLD 4000 | 1300 189 682 | taxbne.com.au',W/2,294,{align:'center'});
-  }
-  var fname='PSI-Assessment-'+answers.fullName.replace(/[^a-zA-Z0-9]/g,'-')+'.pdf';
-  doc.save(fname);
+    doc.setTextColor(90,102,128);
+    var dl=wrap(t.pdfDisclaimer||'',CW-12);
+    for(var dli=0;dli<dl.length&&dli<5;dli++){
+      doc.text(dl[dli],M+6,y+5+dli*3);
+    }
+  }catch(e){console.error('PDF disclaimer error:',e);}
+  // Footer bar on each page
+  try{
+    var pages=doc.getNumberOfPages();
+    for(var p=1;p<=pages;p++){
+      doc.setPage(p);
+      doc.setFillColor(10,31,68);
+      doc.rect(0,290,W,7,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(7);
+      doc.text('Y&S Accounting Brisbane | Level 38, 71 Eagle Street, Brisbane QLD 4000 | 1300 189 682 | taxbne.com.au',W/2,294,{align:'center'});
+    }
+  }catch(e){console.error('PDF footer error:',e);}
+  var safeFname=String(answers.fullName||'Client').replace(/[^a-zA-Z0-9]/g,'-').substring(0,50);
+  doc.save('PSI-Assessment-'+safeFname+'.pdf');
 }
 
 render();
