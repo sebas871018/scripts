@@ -520,7 +520,7 @@ function loadITI(cb){
 }
 
 var _itiCSS=document.createElement('style');
-_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}';
+_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}#psi-app .iti__dropdown-content{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .iti__country-list{max-height:none !important;}#psi-app .pcard{overflow:visible !important;}.iti--container{z-index:99999 !important;}';
 document.head.appendChild(_itiCSS);
 
 var _jspdfLoading=false;
@@ -702,6 +702,8 @@ function render(){
           initialCountry:'au',
           preferredCountries:['au','co','br','us','gb','nz'],
           separateDialCode:true,
+          dropdownContainer:document.body,
+          useFullscreenPopup:false,
           utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/utils.js'
         });
         if(answers.phone){itiInstance.setNumber(answers.phone);}
