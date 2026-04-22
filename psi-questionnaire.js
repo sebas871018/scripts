@@ -520,7 +520,7 @@ function loadITI(cb){
 }
 
 var _itiCSS=document.createElement('style');
-_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}#psi-app .iti__dropdown-content{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .iti__country-list{max-height:none !important;}#psi-app .pcard{overflow:visible !important;}.iti--container{z-index:99999 !important;}';
+_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}#psi-app .iti__dropdown-content{position:fixed !important;bottom:auto;max-height:220px;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:99999;background:#fff;border:1px solid #e3e7ef;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);}#psi-app .iti__country-list{max-height:none !important;}#psi-app .pcard{overflow:visible !important;}#psi-app .iti__search-input{padding:8px 10px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;width:100%;}';
 document.head.appendChild(_itiCSS);
 
 var _jspdfLoading=false;
@@ -702,11 +702,32 @@ function render(){
           initialCountry:'au',
           preferredCountries:['au','co','br','us','gb','nz'],
           separateDialCode:true,
-          dropdownContainer:document.body,
           useFullscreenPopup:false,
+          fixDropdownWidth:false,
+          countryOrder:['au','co','br','us','gb','nz'],
           utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/utils.js'
         });
         if(answers.phone){itiInstance.setNumber(answers.phone);}
+        phoneEl.addEventListener('open:countrydropdown',function(){
+          setTimeout(function(){
+            var dd=document.querySelector('.iti__dropdown-content');
+            if(!dd)return;
+            var inputRect=phoneEl.getBoundingClientRect();
+            var ddH=Math.min(220,window.innerHeight*0.4);
+            dd.style.maxHeight=ddH+'px';
+            var spaceBelow=window.innerHeight-inputRect.bottom-10;
+            var spaceAbove=inputRect.top-10;
+            if(spaceBelow>=ddH){
+              dd.style.top=inputRect.bottom+'px';
+              dd.style.bottom='auto';
+            }else{
+              dd.style.bottom=(window.innerHeight-inputRect.top)+'px';
+              dd.style.top='auto';
+            }
+            dd.style.left=inputRect.left+'px';
+            dd.style.width=inputRect.width+'px';
+          },10);
+        });
       }
     });
     var validate=function(){
