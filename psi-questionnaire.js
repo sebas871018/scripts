@@ -804,7 +804,7 @@ backBtn.addEventListener('click',function(){
   else if(step===0){step=-1;answers={};nextBtn.style.display='';render();}
 });
 function defaultNextHandler(){step=getNextStep(step);render();}
-nextBtn.addEventListener('click',defaultNextHandler);
+nextBtn.onclick=defaultNextHandler;
 
 function buildAnswerSummary(){
   var t=T[lang];
