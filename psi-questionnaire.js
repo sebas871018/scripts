@@ -506,23 +506,6 @@ var _css=`
 `;
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
-var _itiReady=false;
-function loadITI(cb){
-  if(_itiReady&&window.intlTelInput){cb();return;}
-  var css=document.createElement('link');
-  css.rel='stylesheet';
-  css.href='https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/css/intlTelInput.min.css';
-  document.head.appendChild(css);
-  var s=document.createElement('script');
-  s.src='https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/intlTelInput.min.js';
-  s.onload=function(){_itiReady=true;cb();};
-  document.head.appendChild(s);
-}
-
-var _itiCSS=document.createElement('style');
-_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}#psi-app .iti__country-list{max-height:180px !important;}#psi-app .pcard{overflow:visible !important;}';
-document.head.appendChild(_itiCSS);
-
 var _jspdfLoading=false;
 function loadJsPDF(cb){
   if(window.jspdf){cb();return;}
@@ -534,6 +517,9 @@ function loadJsPDF(cb){
   s.onerror=function(){_jspdfLoading=false;alert('Could not load PDF library. Please check your internet connection and try again.');};
   document.head.appendChild(s);
 }
+var _phoneCss=document.createElement('style');
+_phoneCss.textContent='#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}';
+document.head.appendChild(_phoneCss);
 var T = window.__PSI_T;
 
 
@@ -691,42 +677,103 @@ function render(){
     var fp2=getFlowPosition();
     progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
     var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
-    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><input type="tel" id="cPhone" autocomplete="tel"></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
     var phoneEl=document.getElementById('cPhone');
-    var itiInstance=null;
-    loadITI(function(){
-      if(window.intlTelInput&&phoneEl){
-        itiInstance=window.intlTelInput(phoneEl,{
-          initialCountry:'au',
-          countryOrder:['au','co','br','us','gb','nz'],
-          separateDialCode:true,
-          useFullscreenPopup:false,
-          utilsScript:'https://cdn.jsdelivr.net/npm/intl-tel-input@24.8.2/build/js/utils.js',
-          containerClass:'psi-iti-container'
+    var ccBtn=document.getElementById('ccBtn');
+    var ccFlag=document.getElementById('ccFlag');
+    var ccCode=document.getElementById('ccCode');
+    var ccDropdown=document.getElementById('ccDropdown');
+    var ccSearch=document.getElementById('ccSearch');
+    var ccList=document.getElementById('ccList');
+    var countries=[
+      {c:'AU',n:'Australia',d:'+61',f:'\ud83c\udde6\ud83c\uddfa'},
+      {c:'CO',n:'Colombia',d:'+57',f:'\ud83c\udde8\ud83c\uddf4'},
+      {c:'BR',n:'Brazil',d:'+55',f:'\ud83c\udde7\ud83c\uddf7'},
+      {c:'US',n:'United States',d:'+1',f:'\ud83c\uddfa\ud83c\uddf8'},
+      {c:'GB',n:'United Kingdom',d:'+44',f:'\ud83c\uddec\ud83c\udde7'},
+      {c:'NZ',n:'New Zealand',d:'+64',f:'\ud83c\uddf3\ud83c\uddff'},
+      {c:'--',n:'',d:'',f:''},
+      {c:'AF',n:'Afghanistan',d:'+93',f:'\ud83c\udde6\ud83c\uddeb'},
+      {c:'AL',n:'Albania',d:'+355',f:'\ud83c\udde6\ud83c\uddf1'},
+      {c:'DZ',n:'Algeria',d:'+213',f:'\ud83c\udde9\ud83c\uddff'},
+      {c:'AR',n:'Argentina',d:'+54',f:'\ud83c\udde6\ud83c\uddf7'},
+      {c:'AT',n:'Austria',d:'+43',f:'\ud83c\udde6\ud83c\uddf9'},
+      {c:'BD',n:'Bangladesh',d:'+880',f:'\ud83c\udde7\ud83c\udde9'},
+      {c:'BE',n:'Belgium',d:'+32',f:'\ud83c\udde7\ud83c\uddea'},
+      {c:'CA',n:'Canada',d:'+1',f:'\ud83c\udde8\ud83c\udde6'},
+      {c:'CL',n:'Chile',d:'+56',f:'\ud83c\udde8\ud83c\uddf1'},
+      {c:'CN',n:'China',d:'+86',f:'\ud83c\udde8\ud83c\uddf3'},
+      {c:'EC',n:'Ecuador',d:'+593',f:'\ud83c\uddea\ud83c\udde8'},
+      {c:'EG',n:'Egypt',d:'+20',f:'\ud83c\uddea\ud83c\uddec'},
+      {c:'FJ',n:'Fiji',d:'+679',f:'\ud83c\uddeb\ud83c\uddef'},
+      {c:'FR',n:'France',d:'+33',f:'\ud83c\uddeb\ud83c\uddf7'},
+      {c:'DE',n:'Germany',d:'+49',f:'\ud83c\udde9\ud83c\uddea'},
+      {c:'GR',n:'Greece',d:'+30',f:'\ud83c\uddec\ud83c\uddf7'},
+      {c:'HK',n:'Hong Kong',d:'+852',f:'\ud83c\udded\ud83c\uddf0'},
+      {c:'IN',n:'India',d:'+91',f:'\ud83c\uddee\ud83c\uddf3'},
+      {c:'ID',n:'Indonesia',d:'+62',f:'\ud83c\uddee\ud83c\udde9'},
+      {c:'IE',n:'Ireland',d:'+353',f:'\ud83c\uddee\ud83c\uddea'},
+      {c:'IL',n:'Israel',d:'+972',f:'\ud83c\uddee\ud83c\uddf1'},
+      {c:'IT',n:'Italy',d:'+39',f:'\ud83c\uddee\ud83c\uddf9'},
+      {c:'JP',n:'Japan',d:'+81',f:'\ud83c\uddef\ud83c\uddf5'},
+      {c:'KR',n:'South Korea',d:'+82',f:'\ud83c\uddf0\ud83c\uddf7'},
+      {c:'MY',n:'Malaysia',d:'+60',f:'\ud83c\uddf2\ud83c\uddfe'},
+      {c:'MX',n:'Mexico',d:'+52',f:'\ud83c\uddf2\ud83c\uddfd'},
+      {c:'NL',n:'Netherlands',d:'+31',f:'\ud83c\uddf3\ud83c\uddf1'},
+      {c:'PK',n:'Pakistan',d:'+92',f:'\ud83c\uddf5\ud83c\uddf0'},
+      {c:'PE',n:'Peru',d:'+51',f:'\ud83c\uddf5\ud83c\uddea'},
+      {c:'PH',n:'Philippines',d:'+63',f:'\ud83c\uddf5\ud83c\udded'},
+      {c:'PG',n:'Papua New Guinea',d:'+675',f:'\ud83c\uddf5\ud83c\uddec'},
+      {c:'PT',n:'Portugal',d:'+351',f:'\ud83c\uddf5\ud83c\uddf9'},
+      {c:'SG',n:'Singapore',d:'+65',f:'\ud83c\uddf8\ud83c\uddec'},
+      {c:'ZA',n:'South Africa',d:'+27',f:'\ud83c\uddff\ud83c\udde6'},
+      {c:'ES',n:'Spain',d:'+34',f:'\ud83c\uddea\ud83c\uddf8'},
+      {c:'LK',n:'Sri Lanka',d:'+94',f:'\ud83c\uddf1\ud83c\uddf0'},
+      {c:'TH',n:'Thailand',d:'+66',f:'\ud83c\uddf9\ud83c\udded'},
+      {c:'VE',n:'Venezuela',d:'+58',f:'\ud83c\uddfb\ud83c\uddea'},
+      {c:'VN',n:'Vietnam',d:'+84',f:'\ud83c\uddfb\ud83c\uddf3'}
+    ];
+    var selCC=countries[0];
+    function setCC(cc){selCC=cc;ccFlag.textContent=cc.f;ccCode.textContent=cc.d;validate();}
+    function renderList(filter){
+      var h='';
+      for(var i=0;i<countries.length;i++){
+        var c=countries[i];
+        if(c.c==='--'){h+='<div class="pcc-sep"></div>';continue;}
+        if(filter&&c.n.toLowerCase().indexOf(filter)<0&&c.d.indexOf(filter)<0&&c.c.toLowerCase().indexOf(filter)<0)continue;
+        h+='<div class="pcc-item" data-i="'+i+'">'+c.f+' '+c.n+' <span class="pcc-dial">'+c.d+'</span></div>';
+      }
+      ccList.innerHTML=h;
+      var items=ccList.querySelectorAll('.pcc-item');
+      for(var j=0;j<items.length;j++){
+        items[j].addEventListener('click',function(){
+          setCC(countries[parseInt(this.getAttribute('data-i'))]);
+          ccDropdown.style.display='none';
+          phoneEl.focus();
         });
-        var itiObs=new MutationObserver(function(){
-          var dd=document.querySelector('.iti__dropdown-content');
-          if(dd&&dd.offsetHeight>0){
-            var rect=phoneEl.getBoundingClientRect();
-            var spaceBelow=window.innerHeight-rect.bottom-20;
-            if(spaceBelow<200){
-              dd.style.position='absolute';
-              dd.style.bottom='100%';
-              dd.style.top='auto';
-              dd.style.maxHeight=Math.min(250,rect.top-20)+'px';
-            }else{
-              dd.style.maxHeight=Math.min(250,spaceBelow)+'px';
-            }
-          }
-        });
-        var itiCC=phoneEl.closest('.iti__country-container')||phoneEl.closest('.iti');
-        if(itiCC)itiObs.observe(itiCC,{attributes:true,childList:true,subtree:true});
-        if(answers.phone){itiInstance.setNumber(answers.phone);}
-
+      }
+    }
+    renderList('');
+    setCC(countries[0]);
+    ccBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var show=ccDropdown.style.display==='none';
+      ccDropdown.style.display=show?'block':'none';
+      if(show){
+        ccSearch.value='';renderList('');ccSearch.focus();
+        var wrap=ccBtn.closest('.pinput-group');
+        var rect=wrap.getBoundingClientRect();
+        var spaceBelow=window.innerHeight-rect.bottom-10;
+        if(spaceBelow<200){ccDropdown.style.bottom='100%';ccDropdown.style.top='auto';ccDropdown.style.maxHeight=Math.min(260,rect.top-10)+'px';}
+        else{ccDropdown.style.top='100%';ccDropdown.style.bottom='auto';ccDropdown.style.maxHeight=Math.min(260,spaceBelow)+'px';}
       }
     });
+    ccSearch.addEventListener('input',function(){renderList(this.value.toLowerCase());});
+    ccSearch.addEventListener('click',function(e){e.stopPropagation();});
+    document.addEventListener('click',function(){ccDropdown.style.display='none';});
+    if(answers.phone){phoneEl.value=answers.phone.replace(/^\+\d+\s*/,'');}
     var validate=function(){
       var nameOk=nameInput.value.trim().length>=2;
       var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
@@ -736,14 +783,13 @@ function render(){
     nameInput.addEventListener('input',validate);
     emailInput.addEventListener('input',validate);
     phoneEl.addEventListener('input',validate);
-    phoneEl.addEventListener('countrychange',validate);
     validate();
     backBtn.style.visibility='visible';
     nextBtn.textContent=t.seeResult;
     nextBtn.onclick=function(){
       var name=nameInput.value.trim();
       var email=emailInput.value.trim();
-      var phone=itiInstance&&itiInstance.getNumber?itiInstance.getNumber():phoneEl.value.trim();
+      var phone=selCC.d+' '+phoneEl.value.trim();
       if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||phoneEl.value.trim().replace(/[\s\-()]/g,'').length<6){
         document.getElementById('cErr').textContent=t.contactError;
         return;
