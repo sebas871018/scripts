@@ -757,22 +757,31 @@ function render(){
     }
     renderList('');
     setCC(countries[0]);
-    ccBtn.addEventListener('click',function(e){
+    var _ddJustOpened=false;
+    ccBtn.addEventListener('mousedown',function(e){
+      e.preventDefault();
       e.stopPropagation();
       var show=ccDropdown.style.display==='none';
-      ccDropdown.style.display=show?'block':'none';
       if(show){
-        ccSearch.value='';renderList('');ccSearch.focus();
+        _ddJustOpened=true;
+        ccDropdown.style.display='block';
+        ccSearch.value='';renderList('');
+        setTimeout(function(){ccSearch.focus();_ddJustOpened=false;},50);
         var wrap=ccBtn.closest('.pinput-group');
         var rect=wrap.getBoundingClientRect();
         var spaceBelow=window.innerHeight-rect.bottom-10;
         if(spaceBelow<200){ccDropdown.style.bottom='100%';ccDropdown.style.top='auto';ccDropdown.style.maxHeight=Math.min(260,rect.top-10)+'px';}
         else{ccDropdown.style.top='100%';ccDropdown.style.bottom='auto';ccDropdown.style.maxHeight=Math.min(260,spaceBelow)+'px';}
+      }else{
+        ccDropdown.style.display='none';
       }
     });
     ccSearch.addEventListener('input',function(){renderList(this.value.toLowerCase());});
-    ccSearch.addEventListener('click',function(e){e.stopPropagation();});
-    document.addEventListener('click',function(){ccDropdown.style.display='none';});
+    ccSearch.addEventListener('mousedown',function(e){e.stopPropagation();});
+    ccDropdown.addEventListener('mousedown',function(e){e.stopPropagation();});
+    document.addEventListener('mousedown',function(){
+      if(!_ddJustOpened){ccDropdown.style.display='none';}
+    });
     if(answers.phone){phoneEl.value=answers.phone.replace(/^\+\d+\s*/,'');}
     var validate=function(){
       var nameOk=nameInput.value.trim().length>=2;
