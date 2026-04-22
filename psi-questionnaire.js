@@ -591,6 +591,11 @@ function getFlowPosition(){
   for(var i=0;i<flow.length;i++){if(flow[i]===s){return {pos:i+1,total:flow.length};}}
   return {pos:flow.length,total:flow.length};
 }
+function clearDownstreamAnswers(fromQIndex){
+  var t=T[lang];
+  for(var i=fromQIndex+1;i<t.questions.length;i++){delete answers[t.questions[i].id];}
+}
+
 var lang=null,answers={},step=-1;
 var mount=document.getElementById(ROOT);
 if(!mount){return;}
@@ -654,7 +659,9 @@ function render(){
     var opts=content.querySelectorAll('.popt');
     for(var k=0;k<opts.length;k++){
       opts[k].addEventListener('click',function(){
-        answers[q.id]=this.getAttribute('data-v');
+        var newVal=this.getAttribute('data-v');
+        if(answers[q.id]!==newVal){clearDownstreamAnswers(step);}
+        answers[q.id]=newVal;
         render();
       });
     }
