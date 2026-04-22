@@ -506,6 +506,23 @@ var _css=`
 `;
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
+var _itiReady=false;
+function loadITI(cb){
+  if(_itiReady&&window.intlTelInput){cb();return;}
+  var css=document.createElement('link');
+  css.rel='stylesheet';
+  css.href='https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/css/intlTelInput.min.css';
+  document.head.appendChild(css);
+  var s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/js/intlTelInput.min.js';
+  s.onload=function(){_itiReady=true;cb();};
+  document.head.appendChild(s);
+}
+
+var _itiCSS=document.createElement('style');
+_itiCSS.textContent='#psi-app .iti{width:100%;}#psi-app .iti__tel-input{width:100%;padding:10px 12px 10px 52px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;}#psi-app .iti__country-container{border-radius:6px 0 0 6px;}#psi-app .iti__selected-country-primary{padding-left:10px;}';
+document.head.appendChild(_itiCSS);
+
 var _jspdfLoading=false;
 function loadJsPDF(cb){
   if(window.jspdf){cb();return;}
@@ -670,31 +687,44 @@ function render(){
     nextBtn.textContent=t.next;
     return;
   }
-  if(step>=t.questions.length||step===CONTACT_STEP){
+  if(step===CONTACT_STEP){
     var fp2=getFlowPosition();
     progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
     var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
-    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><input type="tel" id="cPhone" placeholder="'+t.phonePh+'" value="'+(answers.phone||'')+'" autocomplete="tel"></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><input type="tel" id="cPhone" autocomplete="tel"></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
-    var phoneInput=document.getElementById('cPhone');
+    var phoneEl=document.getElementById('cPhone');
+    var itiInstance=null;
+    loadITI(function(){
+      if(window.intlTelInput&&phoneEl){
+        itiInstance=window.intlTelInput(phoneEl,{
+          initialCountry:'au',
+          preferredCountries:['au','co','br','us','gb','nz'],
+          separateDialCode:true,
+          utilsScript:'https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/25.3.1/js/utils.min.js'
+        });
+        if(answers.phone){itiInstance.setNumber(answers.phone);}
+      }
+    });
     var validate=function(){
       var nameOk=nameInput.value.trim().length>=2;
       var emailOk=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim());
-      var phoneOk=phoneInput.value.trim().replace(/[\s\-()]/g,'').length>=8;
+      var phoneOk=phoneEl.value.trim().replace(/[\s\-()]/g,'').length>=6;
       nextBtn.disabled=!(nameOk&&emailOk&&phoneOk);
     };
     nameInput.addEventListener('input',validate);
     emailInput.addEventListener('input',validate);
-    phoneInput.addEventListener('input',validate);
+    phoneEl.addEventListener('input',validate);
+    phoneEl.addEventListener('countrychange',validate);
     validate();
     backBtn.style.visibility='visible';
     nextBtn.textContent=t.seeResult;
     nextBtn.onclick=function(){
       var name=nameInput.value.trim();
       var email=emailInput.value.trim();
-      var phone=phoneInput.value.trim();
-      if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||phone.replace(/[\s\-()]/g,'').length<8){
+      var phone=itiInstance&&itiInstance.getNumber?itiInstance.getNumber():phoneEl.value.trim();
+      if(name.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||phoneEl.value.trim().replace(/[\s\-()]/g,'').length<6){
         document.getElementById('cErr').textContent=t.contactError;
         return;
       }
