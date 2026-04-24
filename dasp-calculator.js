@@ -740,8 +740,8 @@
 
     h += '<div class="dasp-note">' + esc(state.answers.visa === 'whm' ? L.noteWhm : L.noteOther) + '</div>';
 
-    h += '<a href="https://www.taxbne.com.au/services/departing-australia-superannuation-claim#book" ' +
-         'class="dasp-btn dasp-btn-cta">';
+    h += '<a href="https://calendly.com/ysaccounting-brisbane/leaving-australia" ' +
+         'target="_blank" rel="noopener" class="dasp-btn dasp-btn-cta">';
     h += '  <span>' + esc(L.cta) + '</span>';
     h += '</a>';
     h += '<p class="dasp-cta-sub">' + esc(L.ctaSub) + '</p>';
