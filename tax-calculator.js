@@ -1,8 +1,21 @@
 /*!
  * Y&S Accounting — Australian Individual Tax Calculator
  * Multilingual: EN / ES / PT
- * Pairs with tax-calculator.html (HTML + CSS embed pasted in Webflow).
- * Host this file on GitHub and load via jsDelivr — see HTML setup comment.
+ *
+ * Two integration modes (auto-detected at runtime):
+ *
+ *  A. MOUNT-DIV MODE (preferred — no Webflow Embed needed)
+ *     - Add a Div Block on the page with id="ystc-mount"
+ *     - Add a hidden Webflow form with id="tax-calc-form" (27 named fields)
+ *     - Load this script via jsDelivr (Site Settings ▸ Custom Code, or Page
+ *       Settings ▸ Custom Code, or as an HTML embed). Script will inject the
+ *       full UI (HTML + CSS) into the mount div.
+ *
+ *  B. INLINE EMBED MODE (legacy)
+ *     - The HTML and CSS in tax-calculator.html are pasted into a Webflow
+ *       Embed element. Script just binds events to the existing markup.
+ *
+ * Either way the hidden Webflow form receives the submission natively.
  */
 (function () {
   'use strict';
@@ -1058,9 +1071,206 @@
     applyLang();
   }
 
+  /* ============================ UI INJECTION ============================ */
+  /* Used in MOUNT-DIV mode: if the page has <div id="ystc-mount"> but no
+     existing #ystc-root, this injects the full HTML + CSS at runtime. */
+
+  var UI_CSS = [
+    '#ystc-root, #ystc-root *, #ystc-root *::before, #ystc-root *::after { box-sizing: border-box; }',
+    '#ystc-root { --ys-navy: #0A1F44; --ys-text: #0A1F44; --ys-muted: #555555; --ys-border: #E8E8E5; --ys-soft: #F7F7F5; --ys-mint: #5DCAA5; --ys-white: #FFFFFF; --ys-w-12: rgba(255,255,255,0.12); --ys-w-20: rgba(255,255,255,0.22); --ys-w-55: rgba(255,255,255,0.55); --ys-w-70: rgba(255,255,255,0.72); font-family: \'Space Grotesk\', -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: var(--ys-text); max-width: 1120px; margin: 0 auto; line-height: 1.5; }',
+    '.ystc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 28px; }',
+    '.ystc-head-text { flex: 1; min-width: 0; }',
+    '.ystc-accent { width: 44px; height: 3px; background: var(--ys-navy); margin-bottom: 18px; }',
+    '.ystc-title { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 32px; line-height: 1.25; color: var(--ys-navy); margin: 0 0 10px; }',
+    '.ystc-sub { font-size: 15px; color: var(--ys-muted); margin: 0; max-width: 680px; line-height: 1.75; }',
+    '.ystc-langs { display: flex; gap: 4px; padding: 4px; background: var(--ys-soft); border-radius: 10px; flex: none; align-self: flex-start; }',
+    '.ystc-lang { padding: 7px 14px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ys-muted); border-radius: 7px; letter-spacing: 0.05em; transition: background 120ms, color 120ms; }',
+    '.ystc-lang:hover { color: var(--ys-navy); }',
+    '.ystc-lang.active { background: var(--ys-navy); color: var(--ys-white); }',
+    '.ystc-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start; }',
+    '.ystc-col-inputs { background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 12px; padding: 28px; }',
+    '.ystc-section-h { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 13px; color: var(--ys-navy); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; }',
+    '.ystc-section + .ystc-section { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--ys-border); }',
+    '.ystc-field { margin-bottom: 14px; }',
+    '.ystc-field:last-child { margin-bottom: 0; }',
+    '.ystc-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ys-navy); margin-bottom: 6px; }',
+    '.ystc-input, .ystc-select { width: 100%; padding: 11px 14px; font-family: inherit; font-size: 15px; color: var(--ys-text); background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 8px; -webkit-appearance: none; appearance: none; line-height: 1.4; transition: border-color 120ms, box-shadow 120ms; }',
+    '.ystc-input::placeholder { color: #9AA3B2; }',
+    '.ystc-select { background-image: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'><path fill=\'none\' stroke=\'%230A1F44\' stroke-width=\'2\' d=\'M1 1l5 5 5-5\'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }',
+    '.ystc-input:focus, .ystc-select:focus { outline: none; border-color: var(--ys-navy); box-shadow: 0 0 0 3px rgba(10,31,68,0.10); }',
+    '.ystc-input-money { padding-left: 32px; }',
+    '.ystc-field-money { position: relative; }',
+    '.ystc-field-money::before { content: \'$\'; position: absolute; left: 14px; top: calc(50% + 10px); transform: translateY(-50%); font-size: 14px; color: #9AA3B2; pointer-events: none; font-weight: 500; }',
+    '.ystc-combo { position: relative; }',
+    '.ystc-combo-input { padding-right: 36px; }',
+    '.ystc-combo-chevron { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #9AA3B2; pointer-events: none; font-size: 11px; line-height: 1; transition: transform 150ms; }',
+    '.ystc-combo.open .ystc-combo-chevron { transform: translateY(-50%) rotate(180deg); }',
+    '.ystc-combo-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 8px; box-shadow: 0 12px 28px rgba(10,31,68,0.12); list-style: none; padding: 6px; margin: 0; z-index: 30; display: none; }',
+    '.ystc-combo-list.open { display: block; }',
+    '.ystc-combo-opt { padding: 9px 12px; cursor: pointer; border-radius: 6px; font-size: 14px; color: var(--ys-text); line-height: 1.4; }',
+    '.ystc-combo-opt:hover, .ystc-combo-opt.active { background: var(--ys-soft); }',
+    '.ystc-combo-opt.selected { background: rgba(10,31,68,0.06); font-weight: 600; color: var(--ys-navy); }',
+    '.ystc-combo-opt mark { background: rgba(93,202,165,0.35); color: inherit; padding: 0; }',
+    '.ystc-combo-empty { padding: 14px 12px; color: var(--ys-muted); font-size: 13px; text-align: center; }',
+    '.ystc-running { display: flex; justify-content: space-between; align-items: baseline; background: var(--ys-soft); border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: 14px; color: var(--ys-muted); }',
+    '.ystc-running span:last-child { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 16px; color: var(--ys-navy); font-variant-numeric: tabular-nums; }',
+    '.ystc-helper { font-size: 12px; color: var(--ys-muted); margin: 0 0 14px; }',
+    '.ystc-toggles { display: flex; flex-direction: column; gap: 12px; }',
+    '.ystc-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ys-text); cursor: pointer; user-select: none; }',
+    '.ystc-check input { width: 18px; height: 18px; accent-color: var(--ys-navy); margin: 0; flex: none; cursor: pointer; }',
+    '.ystc-tip { position: relative; display: inline-block; }',
+    '.ystc-tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: #D0D5DD; color: var(--ys-white); font-size: 10px; font-weight: 700; line-height: 1; cursor: help; outline: none; transition: background 120ms; }',
+    '.ystc-tip-icon:hover, .ystc-tip-icon:focus { background: var(--ys-navy); }',
+    '.ystc-tip-text { position: absolute; top: calc(100% + 8px); left: -10px; width: 260px; max-width: calc(100vw - 40px); padding: 10px 12px; background: var(--ys-navy); color: var(--ys-white); font-family: \'Space Grotesk\', sans-serif; font-size: 12px; font-weight: 400; line-height: 1.5; text-transform: none; letter-spacing: normal; border-radius: 6px; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms, visibility 120ms; z-index: 100; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }',
+    '.ystc-tip-text::before { content: \'\'; position: absolute; bottom: 100%; left: 15px; border: 5px solid transparent; border-bottom-color: var(--ys-navy); }',
+    '.ystc-tip:hover .ystc-tip-text, .ystc-tip:focus-within .ystc-tip-text { opacity: 1; visibility: visible; }',
+    '.ystc-col-results { background: var(--ys-navy); border-radius: 16px; padding: 32px; color: var(--ys-white); position: sticky; top: 20px; }',
+    '.ystc-res-title { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 20px; color: var(--ys-white); margin: 0 0 4px; }',
+    '.ystc-res-sub { font-size: 13px; color: var(--ys-w-70); margin: 0 0 22px; }',
+    '.ystc-res-list { list-style: none; padding: 0; margin: 0; }',
+    '.ystc-res-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--ys-w-12); font-size: 14px; color: var(--ys-w-70); }',
+    '.ystc-res-list li span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ys-white); font-size: 15px; }',
+    '.ystc-res-list li.ystc-r-ti { color: var(--ys-white); border-bottom: 1.5px solid var(--ys-w-20); padding: 12px 0; font-weight: 600; }',
+    '.ystc-res-list li.ystc-total { margin-top: 6px; padding-top: 16px; border-top: 1.5px solid var(--ys-w-20); border-bottom: none; font-size: 15px; color: var(--ys-white); font-weight: 600; }',
+    '.ystc-res-list li.ystc-total span:last-child { font-family: \'Montserrat\', sans-serif; font-size: 26px; font-weight: 700; }',
+    '.ystc-res-list li.ystc-subtotal { padding: 12px 0; font-weight: 600; color: var(--ys-white); border-top: 1.5px solid var(--ys-w-20); border-bottom: 1px solid var(--ys-w-12); margin-top: 6px; }',
+    '.ystc-res-list li.ystc-subtotal span:last-child { font-family: \'Montserrat\', sans-serif; font-size: 17px; font-weight: 700; }',
+    '.ystc-res-list li.ystc-total.ystc-refund span:last-child { color: var(--ys-mint); }',
+    '.ystc-res-list li.ystc-total.ystc-owing  span:last-child { color: #FFB4A8; }',
+    '.ystc-divider { height: 1px; background: var(--ys-w-12); margin: 24px 0; }',
+    '.ystc-cta-intro { font-size: 13px; color: var(--ys-w-70); margin: 0 0 14px; }',
+    '.ystc-dark-label { display: block; font-size: 12px; font-weight: 600; color: var(--ys-white); margin-bottom: 6px; letter-spacing: 0.03em; }',
+    '.ystc-dark-input { width: 100%; padding: 11px 14px; font-family: inherit; font-size: 15px; color: var(--ys-white); background: var(--ys-w-12); border: 1px solid var(--ys-w-20); border-radius: 8px; -webkit-appearance: none; appearance: none; transition: border-color 120ms, background 120ms; }',
+    '.ystc-dark-input::placeholder { color: var(--ys-w-55); }',
+    '.ystc-dark-input:focus { outline: none; border-color: var(--ys-mint); background: rgba(255,255,255,0.16); }',
+    '.ystc-dark-field + .ystc-dark-field { margin-top: 12px; }',
+    '.ystc-btn-white { width: 100%; margin-top: 18px; padding: 14px 20px; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--ys-navy); background: var(--ys-white); border: none; border-radius: 8px; cursor: pointer; transition: background 120ms, box-shadow 120ms; letter-spacing: 0.01em; }',
+    '.ystc-btn-white:hover { background: #F3F4F2; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }',
+    '.ystc-btn-ghost { width: 100%; margin-top: 10px; padding: 12px 20px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ys-w-70); background: transparent; border: 1px solid var(--ys-w-20); border-radius: 8px; cursor: pointer; transition: color 120ms, border-color 120ms; }',
+    '.ystc-btn-ghost:hover { color: var(--ys-white); border-color: var(--ys-white); }',
+    '.ystc-btn-white:disabled, .ystc-btn-ghost:disabled { opacity: 0.55; cursor: not-allowed; }',
+    '.ystc-msg { margin: 14px 0 0; font-size: 13px; min-height: 1.2em; color: var(--ys-w-70); line-height: 1.5; }',
+    '.ystc-msg.error   { color: #FFB4A8; }',
+    '.ystc-msg.success { color: var(--ys-mint); }',
+    '.ystc-disclaimer { margin: 24px 0 0; font-size: 12px; color: var(--ys-muted); line-height: 1.6; }',
+    '#tax-calc-form, .w-form:has(#tax-calc-form) { display: none !important; }',
+    '@media (max-width: 900px) { .ystc-grid { grid-template-columns: 1fr; } .ystc-col-results { position: static; } .ystc-title { font-size: 26px; } .ystc-col-inputs, .ystc-col-results { padding: 24px; } }',
+    '@media (max-width: 480px) { .ystc-head { flex-direction: column; } .ystc-col-inputs, .ystc-col-results { padding: 20px; } .ystc-res-list li.ystc-total span:last-child { font-size: 22px; } }'
+  ].join('\n');
+
+  var UI_HTML = [
+    '<div id="ystc-root">',
+      '<div class="ystc-head">',
+        '<div class="ystc-head-text">',
+          '<div class="ystc-accent"></div>',
+          '<h2 class="ystc-title" data-i18n="title">Australian individual tax calculator</h2>',
+          '<p class="ystc-sub" data-i18n="subtitle">Fast estimate.</p>',
+        '</div>',
+        '<div class="ystc-langs" role="tablist" aria-label="Language">',
+          '<button type="button" class="ystc-lang" data-lang="en" role="tab">EN</button>',
+          '<button type="button" class="ystc-lang" data-lang="es" role="tab">ES</button>',
+          '<button type="button" class="ystc-lang" data-lang="pt" role="tab">PT</button>',
+        '</div>',
+      '</div>',
+      '<div class="ystc-grid">',
+        '<div class="ystc-col-inputs">',
+          '<div class="ystc-section">',
+            '<h3 class="ystc-section-h" data-i18n="sec_details">Your details</h3>',
+            '<div class="ystc-field">',
+              '<label class="ystc-label" for="ystc-year"><span data-i18n="f_year">Income year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_year">.</span></span></label>',
+              '<select id="ystc-year" class="ystc-select"><option value="2025-26">2025-26</option><option value="2024-25">2024-25</option><option value="2023-24">2023-24</option></select>',
+            '</div>',
+            '<div class="ystc-field">',
+              '<label class="ystc-label" for="ystc-residency"><span data-i18n="f_residency">Residency for tax</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_residency">.</span></span></label>',
+              '<select id="ystc-residency" class="ystc-select"><option value="resident" data-i18n="res_resident">Australian resident</option><option value="nonResident" data-i18n="res_nonResident">Foreign resident</option><option value="whm" data-i18n="res_whm">Working Holiday Maker</option></select>',
+            '</div>',
+            '<div class="ystc-field">',
+              '<label class="ystc-label" for="ystc-occupation"><span data-i18n="f_occupation">Occupation</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_occupation">.</span></span></label>',
+              '<div id="ystc-combo" class="ystc-combo">',
+                '<input type="text" id="ystc-occupation" class="ystc-input ystc-combo-input" data-i18n-placeholder="ph_search" placeholder="Type to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ystc-occ-list">',
+                '<span class="ystc-combo-chevron">&#9662;</span>',
+                '<ul id="ystc-occ-list" class="ystc-combo-list" role="listbox"></ul>',
+              '</div>',
+            '</div>',
+          '</div>',
+          '<div class="ystc-section">',
+            '<h3 class="ystc-section-h" data-i18n="sec_income">Income</h3>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-wages"><span data-i18n="f_wages">Salary &amp; wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_wages">.</span></span></label><input type="number" id="ystc-wages" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-interest"><span data-i18n="f_interest">Interest income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_interest">.</span></span></label><input type="number" id="ystc-interest" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-business"><span data-i18n="f_business">Net business income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_business">.</span></span></label><input type="number" id="ystc-business" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-rental"><span data-i18n="f_rental">Net rental income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_rental">.</span></span></label><input type="number" id="ystc-rental" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-running"><span data-i18n="f_total_income">Total income</span><span id="ystc-total-income">$0</span></div>',
+          '</div>',
+          '<div class="ystc-section">',
+            '<h3 class="ystc-section-h" data-i18n="sec_deductions">Deductions</h3>',
+            '<p class="ystc-helper" data-i18n="h_deductions">.</p>',
+            '<div id="ystc-deductions"></div>',
+            '<div class="ystc-running"><span data-i18n="f_total_deds">Total deductions</span><span id="ystc-total-deductions">$0</span></div>',
+          '</div>',
+          '<div class="ystc-section">',
+            '<h3 class="ystc-section-h" data-i18n="sec_other">Other factors</h3>',
+            '<div class="ystc-toggles">',
+              '<label class="ystc-check"><input type="checkbox" id="ystc-help"><span data-i18n="chk_help">I have a HELP / HECS debt</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_help">.</span></span></label>',
+              '<label class="ystc-check"><input type="checkbox" id="ystc-medex"><span data-i18n="chk_medex">Medicare levy exemption applies</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_medex">.</span></span></label>',
+              '<label class="ystc-check"><input type="checkbox" id="ystc-phi"><span data-i18n="chk_phi">Private hospital cover for full year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_phi">.</span></span></label>',
+            '</div>',
+          '</div>',
+          '<div class="ystc-section">',
+            '<h3 class="ystc-section-h" data-i18n="sec_paid">Tax already paid</h3>',
+            '<p class="ystc-helper" data-i18n="h_paid">.</p>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-paygw"><span data-i18n="f_paygw">PAYG tax withheld from wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_paygw">.</span></span></label><input type="number" id="ystc-paygw" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-instalments"><span data-i18n="f_instalments">PAYG instalments paid</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_instalments">.</span></span></label><input type="number" id="ystc-instalments" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+            '<div class="ystc-running"><span data-i18n="f_total_paid">Total tax already paid</span><span id="ystc-total-prepaid">$0</span></div>',
+          '</div>',
+        '</div>',
+        '<div class="ystc-col-results">',
+          '<h3 class="ystc-res-title" data-i18n="sec_results">Your estimated position</h3>',
+          '<p class="ystc-res-sub" data-i18n="sub_results">Updates live as you type.</p>',
+          '<ul class="ystc-res-list" aria-live="polite">',
+            '<li><span data-i18n="r_income">Total income</span><span id="ystc-r-income">$0</span></li>',
+            '<li><span data-i18n="r_deds">Less: deductions</span><span id="ystc-r-deds">$0</span></li>',
+            '<li class="ystc-r-ti"><span data-i18n="r_ti">Taxable income</span><span id="ystc-r-ti">$0</span></li>',
+            '<li><span data-i18n="r_tax">Income tax</span><span id="ystc-r-tax">$0</span></li>',
+            '<li><span data-i18n="r_lito">Low income tax offset (LITO)</span><span id="ystc-r-lito">$0</span></li>',
+            '<li><span data-i18n="r_ml">Medicare levy</span><span id="ystc-r-ml">$0</span></li>',
+            '<li><span data-i18n="r_mls">Medicare levy surcharge</span><span id="ystc-r-mls">$0</span></li>',
+            '<li><span data-i18n="r_help">HELP / HECS repayment</span><span id="ystc-r-help">$0</span></li>',
+            '<li class="ystc-subtotal"><span data-i18n="r_total">Total tax payable</span><span id="ystc-r-total">$0</span></li>',
+            '<li><span data-i18n="r_paid">Less: PAYG withheld &amp; instalments</span><span id="ystc-r-paid">$0</span></li>',
+            '<li class="ystc-total ystc-refund" id="ystc-r-outcome-row"><span id="ystc-r-outcome-label">Estimated refund</span><span id="ystc-r-outcome">$0</span></li>',
+            '<li><span data-i18n="r_net">Net take-home</span><span id="ystc-r-net">$0</span></li>',
+            '<li><span data-i18n="r_eff">Effective tax rate</span><span id="ystc-r-eff">0.0%</span></li>',
+          '</ul>',
+          '<div class="ystc-divider"></div>',
+          '<p class="ystc-cta-intro" data-i18n="h_cta">.</p>',
+          '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-name" data-i18n="f_name">Your name</label><input type="text" id="ystc-name" class="ystc-dark-input" autocomplete="name"></div>',
+          '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-email" data-i18n="f_email">Your email</label><input type="email" id="ystc-email" class="ystc-dark-input" autocomplete="email"></div>',
+          '<button type="button" id="ystc-btn-primary" class="ystc-btn-white" data-i18n="btn_primary">Send estimate &amp; start a tax return</button>',
+          '<button type="button" id="ystc-btn-secondary" class="ystc-btn-ghost" data-i18n="btn_secondary">Just email me the estimate</button>',
+          '<p id="ystc-msg" class="ystc-msg"></p>',
+        '</div>',
+      '</div>',
+      '<p class="ystc-disclaimer" data-i18n="disclaimer">.</p>',
+    '</div>'
+  ].join('');
+
+  function injectUI() {
+    if (document.getElementById('ystc-root')) return; // inline embed mode
+    var mount = document.getElementById('ystc-mount');
+    if (!mount) return; // no mount div either — nothing to do
+    if (!document.getElementById('ystc-styles')) {
+      var style = document.createElement('style');
+      style.id = 'ystc-styles';
+      style.appendChild(document.createTextNode(UI_CSS));
+      document.head.appendChild(style);
+    }
+    mount.innerHTML = UI_HTML;
+  }
+
   /* ============================ INIT ============================ */
 
   function init() {
+    injectUI();
     if (!document.getElementById('ystc-root')) return; // markup not on page
     setupCombo();
     applyLang(); // also calls renderDeductions + calculate
