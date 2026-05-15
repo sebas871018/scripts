@@ -51,6 +51,7 @@
       r_total: 'Total tax payable', r_paid: 'Less: PAYG withheld & instalments',
       r_refund: 'Estimated refund', r_owing: 'Estimated amount owing',
       r_net: 'Net take-home', r_eff: 'Effective tax rate',
+      r_breakdown: 'Tax breakdown',
       btn_primary: 'Send estimate & start a tax return →',
       btn_secondary: 'Just email me the estimate',
       msg_no_name: 'Please enter your name.',
@@ -101,6 +102,7 @@
       r_total: 'Total impuesto a pagar', r_paid: 'Menos: PAYG retenido y cuotas',
       r_refund: 'Reembolso estimado', r_owing: 'Saldo a pagar estimado',
       r_net: 'Ingresos netos', r_eff: 'Tasa efectiva de impuestos',
+      r_breakdown: 'Desglose del impuesto',
       btn_primary: 'Enviar estimación e iniciar declaración →',
       btn_secondary: 'Solo enviarme la estimación por correo',
       msg_no_name: 'Por favor, ingresa tu nombre.',
@@ -151,6 +153,7 @@
       r_total: 'Total imposto a pagar', r_paid: 'Menos: PAYG retido e parcelas',
       r_refund: 'Restituição estimada', r_owing: 'Saldo a pagar estimado',
       r_net: 'Renda líquida', r_eff: 'Alíquota efetiva',
+      r_breakdown: 'Detalhamento do imposto',
       btn_primary: 'Enviar estimativa e iniciar declaração →',
       btn_secondary: 'Só enviar a estimativa por email',
       msg_no_name: 'Por favor, digite seu nome.',
@@ -1155,6 +1158,14 @@
     '.ystc-res-list li.ystc-subtotal span:last-child { font-family: \'Montserrat\', sans-serif; font-size: 17px; font-weight: 700; }',
     '.ystc-res-list li.ystc-total.ystc-refund span:last-child { color: var(--ys-mint); }',
     '.ystc-res-list li.ystc-total.ystc-owing  span:last-child { color: #FFB4A8; }',
+    '.ystc-res-list li.ystc-breakdown-toggle-row { padding: 0; border-bottom: 1px solid var(--ys-w-12); display: block; }',
+    '.ystc-breakdown-toggle { width: 100%; padding: 11px 0; background: transparent; border: none; color: var(--ys-w-55); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: \'Montserrat\', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; transition: color 120ms; }',
+    '.ystc-breakdown-toggle:hover { color: var(--ys-white); }',
+    '.ystc-breakdown-toggle:focus { outline: 2px solid rgba(255,255,255,0.3); outline-offset: 2px; border-radius: 4px; }',
+    '.ystc-breakdown-toggle:focus:not(:focus-visible) { outline: none; }',
+    '.ystc-breakdown-chevron { font-size: 11px; transition: transform 200ms; }',
+    '.ystc-col-results:not(.breakdown-collapsed) .ystc-breakdown-chevron { transform: rotate(180deg); }',
+    '.ystc-col-results.breakdown-collapsed .ystc-res-list li[data-breakdown] { display: none; }',
     '.ystc-divider { height: 1px; background: var(--ys-w-12); margin: 24px 0; }',
     '.ystc-cta-intro { font-size: 13px; color: var(--ys-w-70); margin: 0 0 14px; }',
     '.ystc-dark-label { display: block; font-size: 12px; font-weight: 600; color: var(--ys-white); margin-bottom: 6px; letter-spacing: 0.03em; }',
@@ -1266,18 +1277,24 @@
             '</div>',
           '</div>',
         '</div>',
-        '<div class="ystc-col-results">',
+        '<div class="ystc-col-results breakdown-collapsed">',
           '<h3 class="ystc-res-title" data-i18n="sec_results">Your estimated position</h3>',
           '<p class="ystc-res-sub" data-i18n="sub_results">Updates live as you type.</p>',
           '<ul class="ystc-res-list" aria-live="polite">',
             '<li><span data-i18n="r_income">Total income</span><span id="ystc-r-income">$0</span></li>',
             '<li><span data-i18n="r_deds">Less: deductions</span><span id="ystc-r-deds">$0</span></li>',
             '<li class="ystc-r-ti"><span data-i18n="r_ti">Taxable income</span><span id="ystc-r-ti">$0</span></li>',
-            '<li><span data-i18n="r_tax">Income tax</span><span id="ystc-r-tax">$0</span></li>',
-            '<li><span data-i18n="r_lito">Low income tax offset (LITO)</span><span id="ystc-r-lito">$0</span></li>',
-            '<li><span data-i18n="r_ml">Medicare levy</span><span id="ystc-r-ml">$0</span></li>',
-            '<li><span data-i18n="r_mls">Medicare levy surcharge</span><span id="ystc-r-mls">$0</span></li>',
-            '<li><span data-i18n="r_help">HELP / HECS repayment</span><span id="ystc-r-help">$0</span></li>',
+            '<li class="ystc-breakdown-toggle-row">',
+              '<button type="button" id="ystc-breakdown-toggle" class="ystc-breakdown-toggle" aria-expanded="false" aria-controls="ystc-breakdown-rows">',
+                '<span data-i18n="r_breakdown">Tax breakdown</span>',
+                '<span class="ystc-breakdown-chevron" aria-hidden="true">&#9662;</span>',
+              '</button>',
+            '</li>',
+            '<li data-breakdown="1"><span data-i18n="r_tax">Income tax</span><span id="ystc-r-tax">$0</span></li>',
+            '<li data-breakdown="1"><span data-i18n="r_lito">Low income tax offset (LITO)</span><span id="ystc-r-lito">$0</span></li>',
+            '<li data-breakdown="1"><span data-i18n="r_ml">Medicare levy</span><span id="ystc-r-ml">$0</span></li>',
+            '<li data-breakdown="1"><span data-i18n="r_mls">Medicare levy surcharge</span><span id="ystc-r-mls">$0</span></li>',
+            '<li data-breakdown="1"><span data-i18n="r_help">HELP / HECS repayment</span><span id="ystc-r-help">$0</span></li>',
             '<li class="ystc-subtotal"><span data-i18n="r_total">Total tax payable</span><span id="ystc-r-total">$0</span></li>',
             '<li><span data-i18n="r_paid">Less: PAYG withheld &amp; instalments</span><span id="ystc-r-paid">$0</span></li>',
             '<li class="ystc-total ystc-refund" id="ystc-r-outcome-row"><span id="ystc-r-outcome-label">Estimated refund</span><span id="ystc-r-outcome">$0</span></li>',
@@ -1324,6 +1341,8 @@
     document.querySelectorAll('.ystc-section').forEach(function (s) {
       collapsed[s.dataset.section] = s.classList.contains('collapsed');
     });
+    var resultsCol = document.querySelector('.ystc-col-results');
+    var breakdownCollapsed = !resultsCol || resultsCol.classList.contains('breakdown-collapsed');
     var state = {
       year: $('ystc-year').value,
       residency: $('ystc-residency').value,
@@ -1338,7 +1357,8 @@
       medex: $('ystc-medex').checked,
       phi: $('ystc-phi').checked,
       deductions: deds,
-      collapsed: collapsed
+      collapsed: collapsed,
+      breakdownCollapsed: breakdownCollapsed
     };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
   }
@@ -1368,6 +1388,12 @@
         if (h) h.setAttribute('aria-expanded', s.collapsed[key] ? 'false' : 'true');
       });
     }
+    if (typeof s.breakdownCollapsed === 'boolean') {
+      var col = document.querySelector('.ystc-col-results');
+      if (col) col.classList.toggle('breakdown-collapsed', s.breakdownCollapsed);
+      var bt = $('ystc-breakdown-toggle');
+      if (bt) bt.setAttribute('aria-expanded', s.breakdownCollapsed ? 'false' : 'true');
+    }
     if (s.deductions && Object.keys(s.deductions).length) {
       pendingDeductions = s.deductions; // applied by renderDeductions
     }
@@ -1394,6 +1420,17 @@
         }
       });
     });
+
+    var bt = $('ystc-breakdown-toggle');
+    if (bt) {
+      bt.addEventListener('click', function () {
+        var col = document.querySelector('.ystc-col-results');
+        if (!col) return;
+        var collapsed = col.classList.toggle('breakdown-collapsed');
+        bt.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        saveState();
+      });
+    }
   }
 
   /* ============================ SECTION SUMMARIES ============================ */
