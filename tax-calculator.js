@@ -1078,11 +1078,7 @@
   var UI_CSS = [
     '#ystc-root, #ystc-root *, #ystc-root *::before, #ystc-root *::after { box-sizing: border-box; -webkit-text-fill-color: currentColor; }',
     '#ystc-root { --ys-navy: #0A1F44; --ys-text: #0A1F44; --ys-muted: #555555; --ys-border: #E8E8E5; --ys-soft: #F7F7F5; --ys-mint: #5DCAA5; --ys-white: #FFFFFF; --ys-w-12: rgba(255,255,255,0.12); --ys-w-20: rgba(255,255,255,0.22); --ys-w-55: rgba(255,255,255,0.55); --ys-w-70: rgba(255,255,255,0.72); font-family: \'Space Grotesk\', -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: var(--ys-text); max-width: 1120px; margin: 0 auto; line-height: 1.5; }',
-    '.ystc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 28px; }',
-    '.ystc-head-text { flex: 1; min-width: 0; }',
-    '.ystc-accent { width: 44px; height: 3px; background: var(--ys-navy); margin-bottom: 18px; }',
-    '.ystc-title { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 32px; line-height: 1.25; color: var(--ys-navy); margin: 0 0 10px; }',
-    '.ystc-sub { font-size: 15px; color: var(--ys-muted); margin: 0; max-width: 680px; line-height: 1.75; }',
+    '.ystc-head { display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 16px; }',
     '.ystc-langs { display: flex; gap: 4px; padding: 4px; background: var(--ys-soft); border-radius: 10px; flex: none; align-self: flex-start; }',
     '.ystc-lang { padding: 7px 14px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ys-muted); border-radius: 7px; letter-spacing: 0.05em; transition: background 120ms, color 120ms; }',
     '.ystc-lang:hover { color: var(--ys-navy); }',
@@ -1155,17 +1151,12 @@
     '.ystc-disclaimer { margin: 24px 0 0; font-size: 12px; color: var(--ys-muted); line-height: 1.6; }',
     '#tax-calc-form, .w-form:has(#tax-calc-form) { display: none !important; }',
     '@media (max-width: 900px) { .ystc-grid { grid-template-columns: 1fr; } .ystc-col-results { position: static; } .ystc-title { font-size: 26px; } .ystc-col-inputs, .ystc-col-results { padding: 24px; } }',
-    '@media (max-width: 480px) { .ystc-head { flex-direction: column; } .ystc-col-inputs, .ystc-col-results { padding: 20px; } .ystc-res-list li.ystc-total span:last-child { font-size: 22px; } }'
+    '@media (max-width: 480px) { .ystc-col-inputs, .ystc-col-results { padding: 20px; } .ystc-res-list li.ystc-total span:last-child { font-size: 22px; } }'
   ].join('\n');
 
   var UI_HTML = [
     '<div id="ystc-root">',
       '<div class="ystc-head">',
-        '<div class="ystc-head-text">',
-          '<div class="ystc-accent"></div>',
-          '<h2 class="ystc-title" data-i18n="title">Australian individual tax calculator</h2>',
-          '<p class="ystc-sub" data-i18n="subtitle">Fast estimate.</p>',
-        '</div>',
         '<div class="ystc-langs" role="tablist" aria-label="Language">',
           '<button type="button" class="ystc-lang" data-lang="en" role="tab">EN</button>',
           '<button type="button" class="ystc-lang" data-lang="es" role="tab">ES</button>',
