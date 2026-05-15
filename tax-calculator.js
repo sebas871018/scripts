@@ -822,6 +822,13 @@
     document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
       existing[inp.dataset.key] = inp.value;
     });
+    // Merge pending values from localStorage (first paint after a state restore)
+    if (pendingDeductions) {
+      Object.keys(pendingDeductions).forEach(function (k) {
+        if (!existing[k]) existing[k] = pendingDeductions[k];
+      });
+      pendingDeductions = null;
+    }
 
     $('ystc-deductions').innerHTML = ordered.map(buildDeductionHtml).join('');
 
@@ -915,7 +922,7 @@
       val.textContent = fmt(Math.abs(outcome));
     }
 
-    return {
+    var result = {
       year: year, residency: residency, occupation: combo.selected,
       wages: wages, interest: interest, business: business, rental: rental,
       totalIncome: totalIncome, totalDeductions: totalDeductions,
@@ -925,6 +932,11 @@
       paygw: paygw, instalments: instalments,
       totalPrepaid: totalPrepaid, outcome: outcome
     };
+
+    try { updateSummaries(result); } catch (e) {}
+    try { saveState(); } catch (e) {}
+
+    return result;
   }
 
   /* ============================ SUBMIT ============================ */
@@ -1085,8 +1097,18 @@
     '.ystc-lang.active { background: var(--ys-navy); color: var(--ys-white); }',
     '.ystc-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start; }',
     '.ystc-col-inputs { background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 12px; padding: 28px; }',
-    '.ystc-section-h { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 13px; color: var(--ys-navy); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; }',
-    '.ystc-section + .ystc-section { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--ys-border); }',
+    '.ystc-section-h { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 13px; color: var(--ys-navy); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }',
+    '.ystc-section-h:focus { outline: 2px solid rgba(10,31,68,0.25); outline-offset: 4px; border-radius: 4px; }',
+    '.ystc-section-h:focus:not(:focus-visible) { outline: none; }',
+    '.ystc-sh-label { flex: none; }',
+    '.ystc-section-summary { flex: 1; font-size: 11px; font-weight: 500; color: var(--ys-muted); text-transform: none; letter-spacing: normal; text-align: right; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0; transition: opacity 150ms; }',
+    '.ystc-section.collapsed .ystc-section-summary { opacity: 1; }',
+    '.ystc-section-chevron { font-size: 11px; color: var(--ys-muted); transition: transform 200ms; flex: none; }',
+    '.ystc-section.collapsed .ystc-section-chevron { transform: rotate(-90deg); }',
+    '.ystc-section.collapsed .ystc-section-h { margin-bottom: 0; }',
+    '.ystc-section.collapsed .ystc-section-body { display: none; }',
+    '.ystc-section + .ystc-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--ys-border); }',
+    '.ystc-section.collapsed + .ystc-section, .ystc-section + .ystc-section.collapsed { margin-top: 16px; padding-top: 16px; }',
     '.ystc-field { margin-bottom: 14px; }',
     '.ystc-field:last-child { margin-bottom: 0; }',
     '.ystc-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ys-navy); margin-bottom: 6px; }',
@@ -1165,53 +1187,83 @@
       '</div>',
       '<div class="ystc-grid">',
         '<div class="ystc-col-inputs">',
-          '<div class="ystc-section">',
-            '<h3 class="ystc-section-h" data-i18n="sec_details">Your details</h3>',
-            '<div class="ystc-field">',
-              '<label class="ystc-label" for="ystc-year"><span data-i18n="f_year">Income year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_year">.</span></span></label>',
-              '<select id="ystc-year" class="ystc-select"><option value="2025-26">2025-26</option><option value="2024-25">2024-25</option><option value="2023-24">2023-24</option></select>',
-            '</div>',
-            '<div class="ystc-field">',
-              '<label class="ystc-label" for="ystc-residency"><span data-i18n="f_residency">Residency for tax</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_residency">.</span></span></label>',
-              '<select id="ystc-residency" class="ystc-select"><option value="resident" data-i18n="res_resident">Australian resident</option><option value="nonResident" data-i18n="res_nonResident">Foreign resident</option><option value="whm" data-i18n="res_whm">Working Holiday Maker</option></select>',
-            '</div>',
-            '<div class="ystc-field">',
-              '<label class="ystc-label" for="ystc-occupation"><span data-i18n="f_occupation">Occupation</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_occupation">.</span></span></label>',
-              '<div id="ystc-combo" class="ystc-combo">',
-                '<input type="text" id="ystc-occupation" class="ystc-input ystc-combo-input" data-i18n-placeholder="ph_search" placeholder="Type to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ystc-occ-list">',
-                '<span class="ystc-combo-chevron">&#9662;</span>',
-                '<ul id="ystc-occ-list" class="ystc-combo-list" role="listbox"></ul>',
+          '<div class="ystc-section" data-section="details">',
+            '<h3 class="ystc-section-h" data-section-toggle="details" role="button" tabindex="0" aria-expanded="true">',
+              '<span class="ystc-sh-label" data-i18n="sec_details">Your details</span>',
+              '<span class="ystc-section-summary" data-section-summary="details"></span>',
+              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
+            '</h3>',
+            '<div class="ystc-section-body">',
+              '<div class="ystc-field">',
+                '<label class="ystc-label" for="ystc-year"><span data-i18n="f_year">Income year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_year">.</span></span></label>',
+                '<select id="ystc-year" class="ystc-select"><option value="2025-26">2025-26</option><option value="2024-25">2024-25</option><option value="2023-24">2023-24</option></select>',
+              '</div>',
+              '<div class="ystc-field">',
+                '<label class="ystc-label" for="ystc-residency"><span data-i18n="f_residency">Residency for tax</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_residency">.</span></span></label>',
+                '<select id="ystc-residency" class="ystc-select"><option value="resident" data-i18n="res_resident">Australian resident</option><option value="nonResident" data-i18n="res_nonResident">Foreign resident</option><option value="whm" data-i18n="res_whm">Working Holiday Maker</option></select>',
+              '</div>',
+              '<div class="ystc-field">',
+                '<label class="ystc-label" for="ystc-occupation"><span data-i18n="f_occupation">Occupation</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_occupation">.</span></span></label>',
+                '<div id="ystc-combo" class="ystc-combo">',
+                  '<input type="text" id="ystc-occupation" class="ystc-input ystc-combo-input" data-i18n-placeholder="ph_search" placeholder="Type to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ystc-occ-list">',
+                  '<span class="ystc-combo-chevron">&#9662;</span>',
+                  '<ul id="ystc-occ-list" class="ystc-combo-list" role="listbox"></ul>',
+                '</div>',
               '</div>',
             '</div>',
           '</div>',
-          '<div class="ystc-section">',
-            '<h3 class="ystc-section-h" data-i18n="sec_income">Income</h3>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-wages"><span data-i18n="f_wages">Salary &amp; wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_wages">.</span></span></label><input type="number" id="ystc-wages" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-interest"><span data-i18n="f_interest">Interest income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_interest">.</span></span></label><input type="number" id="ystc-interest" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-business"><span data-i18n="f_business">Net business income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_business">.</span></span></label><input type="number" id="ystc-business" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-rental"><span data-i18n="f_rental">Net rental income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_rental">.</span></span></label><input type="number" id="ystc-rental" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-running"><span data-i18n="f_total_income">Total income</span><span id="ystc-total-income">$0</span></div>',
-          '</div>',
-          '<div class="ystc-section">',
-            '<h3 class="ystc-section-h" data-i18n="sec_deductions">Deductions</h3>',
-            '<p class="ystc-helper" data-i18n="h_deductions">.</p>',
-            '<div id="ystc-deductions"></div>',
-            '<div class="ystc-running"><span data-i18n="f_total_deds">Total deductions</span><span id="ystc-total-deductions">$0</span></div>',
-          '</div>',
-          '<div class="ystc-section">',
-            '<h3 class="ystc-section-h" data-i18n="sec_other">Other factors</h3>',
-            '<div class="ystc-toggles">',
-              '<label class="ystc-check"><input type="checkbox" id="ystc-help"><span data-i18n="chk_help">I have a HELP / HECS debt</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_help">.</span></span></label>',
-              '<label class="ystc-check"><input type="checkbox" id="ystc-medex"><span data-i18n="chk_medex">Medicare levy exemption applies</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_medex">.</span></span></label>',
-              '<label class="ystc-check"><input type="checkbox" id="ystc-phi"><span data-i18n="chk_phi">Private hospital cover for full year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_phi">.</span></span></label>',
+          '<div class="ystc-section" data-section="income">',
+            '<h3 class="ystc-section-h" data-section-toggle="income" role="button" tabindex="0" aria-expanded="true">',
+              '<span class="ystc-sh-label" data-i18n="sec_income">Income</span>',
+              '<span class="ystc-section-summary" data-section-summary="income"></span>',
+              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
+            '</h3>',
+            '<div class="ystc-section-body">',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-wages"><span data-i18n="f_wages">Salary &amp; wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_wages">.</span></span></label><input type="number" id="ystc-wages" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-interest"><span data-i18n="f_interest">Interest income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_interest">.</span></span></label><input type="number" id="ystc-interest" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-business"><span data-i18n="f_business">Net business income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_business">.</span></span></label><input type="number" id="ystc-business" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-rental"><span data-i18n="f_rental">Net rental income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_rental">.</span></span></label><input type="number" id="ystc-rental" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-running"><span data-i18n="f_total_income">Total income</span><span id="ystc-total-income">$0</span></div>',
             '</div>',
           '</div>',
-          '<div class="ystc-section">',
-            '<h3 class="ystc-section-h" data-i18n="sec_paid">Tax already paid</h3>',
-            '<p class="ystc-helper" data-i18n="h_paid">.</p>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-paygw"><span data-i18n="f_paygw">PAYG tax withheld from wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_paygw">.</span></span></label><input type="number" id="ystc-paygw" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-instalments"><span data-i18n="f_instalments">PAYG instalments paid</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_instalments">.</span></span></label><input type="number" id="ystc-instalments" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-            '<div class="ystc-running"><span data-i18n="f_total_paid">Total tax already paid</span><span id="ystc-total-prepaid">$0</span></div>',
+          '<div class="ystc-section collapsed" data-section="deductions">',
+            '<h3 class="ystc-section-h" data-section-toggle="deductions" role="button" tabindex="0" aria-expanded="false">',
+              '<span class="ystc-sh-label" data-i18n="sec_deductions">Deductions</span>',
+              '<span class="ystc-section-summary" data-section-summary="deductions"></span>',
+              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
+            '</h3>',
+            '<div class="ystc-section-body">',
+              '<p class="ystc-helper" data-i18n="h_deductions">.</p>',
+              '<div id="ystc-deductions"></div>',
+              '<div class="ystc-running"><span data-i18n="f_total_deds">Total deductions</span><span id="ystc-total-deductions">$0</span></div>',
+            '</div>',
+          '</div>',
+          '<div class="ystc-section collapsed" data-section="other">',
+            '<h3 class="ystc-section-h" data-section-toggle="other" role="button" tabindex="0" aria-expanded="false">',
+              '<span class="ystc-sh-label" data-i18n="sec_other">Other factors</span>',
+              '<span class="ystc-section-summary" data-section-summary="other"></span>',
+              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
+            '</h3>',
+            '<div class="ystc-section-body">',
+              '<div class="ystc-toggles">',
+                '<label class="ystc-check"><input type="checkbox" id="ystc-help"><span data-i18n="chk_help">I have a HELP / HECS debt</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_help">.</span></span></label>',
+                '<label class="ystc-check"><input type="checkbox" id="ystc-medex"><span data-i18n="chk_medex">Medicare levy exemption applies</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_medex">.</span></span></label>',
+                '<label class="ystc-check"><input type="checkbox" id="ystc-phi"><span data-i18n="chk_phi">Private hospital cover for full year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_phi">.</span></span></label>',
+              '</div>',
+            '</div>',
+          '</div>',
+          '<div class="ystc-section collapsed" data-section="paid">',
+            '<h3 class="ystc-section-h" data-section-toggle="paid" role="button" tabindex="0" aria-expanded="false">',
+              '<span class="ystc-sh-label" data-i18n="sec_paid">Tax already paid</span>',
+              '<span class="ystc-section-summary" data-section-summary="paid"></span>',
+              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
+            '</h3>',
+            '<div class="ystc-section-body">',
+              '<p class="ystc-helper" data-i18n="h_paid">.</p>',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-paygw"><span data-i18n="f_paygw">PAYG tax withheld from wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_paygw">.</span></span></label><input type="number" id="ystc-paygw" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-instalments"><span data-i18n="f_instalments">PAYG instalments paid</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_instalments">.</span></span></label><input type="number" id="ystc-instalments" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
+              '<div class="ystc-running"><span data-i18n="f_total_paid">Total tax already paid</span><span id="ystc-total-prepaid">$0</span></div>',
+            '</div>',
           '</div>',
         '</div>',
         '<div class="ystc-col-results">',
@@ -1258,12 +1310,131 @@
     mount.innerHTML = UI_HTML;
   }
 
+  /* ============================ STATE PERSISTENCE ============================ */
+
+  var STORAGE_KEY = 'ystc-state-v1';
+  var pendingDeductions = null;
+
+  function saveState() {
+    var deds = {};
+    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
+      if (inp.value) deds[inp.dataset.key] = inp.value;
+    });
+    var collapsed = {};
+    document.querySelectorAll('.ystc-section').forEach(function (s) {
+      collapsed[s.dataset.section] = s.classList.contains('collapsed');
+    });
+    var state = {
+      year: $('ystc-year').value,
+      residency: $('ystc-residency').value,
+      occupation: combo.selected,
+      wages: $('ystc-wages').value,
+      interest: $('ystc-interest').value,
+      business: $('ystc-business').value,
+      rental: $('ystc-rental').value,
+      paygw: $('ystc-paygw').value,
+      instalments: $('ystc-instalments').value,
+      help: $('ystc-help').checked,
+      medex: $('ystc-medex').checked,
+      phi: $('ystc-phi').checked,
+      deductions: deds,
+      collapsed: collapsed
+    };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function loadState() {
+    var s;
+    try { s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { s = null; }
+    if (!s) return;
+    if (s.year && $('ystc-year').querySelector('option[value="' + s.year + '"]')) $('ystc-year').value = s.year;
+    if (s.residency) $('ystc-residency').value = s.residency;
+    if (s.occupation && OCCUPATIONS.find(function (o) { return o.key === s.occupation; })) combo.selected = s.occupation;
+    if (s.wages) $('ystc-wages').value = s.wages;
+    if (s.interest) $('ystc-interest').value = s.interest;
+    if (s.business) $('ystc-business').value = s.business;
+    if (s.rental) $('ystc-rental').value = s.rental;
+    if (s.paygw) $('ystc-paygw').value = s.paygw;
+    if (s.instalments) $('ystc-instalments').value = s.instalments;
+    $('ystc-help').checked = !!s.help;
+    $('ystc-medex').checked = !!s.medex;
+    $('ystc-phi').checked = !!s.phi;
+    if (s.collapsed) {
+      Object.keys(s.collapsed).forEach(function (key) {
+        var sec = document.querySelector('.ystc-section[data-section="' + key + '"]');
+        if (!sec) return;
+        sec.classList.toggle('collapsed', !!s.collapsed[key]);
+        var h = sec.querySelector('.ystc-section-h');
+        if (h) h.setAttribute('aria-expanded', s.collapsed[key] ? 'false' : 'true');
+      });
+    }
+    if (s.deductions && Object.keys(s.deductions).length) {
+      pendingDeductions = s.deductions; // applied by renderDeductions
+    }
+  }
+
+  /* ============================ COLLAPSIBLE SECTIONS ============================ */
+
+  function toggleSection(key) {
+    var sec = document.querySelector('.ystc-section[data-section="' + key + '"]');
+    if (!sec) return;
+    var collapsed = sec.classList.toggle('collapsed');
+    var h = sec.querySelector('.ystc-section-h');
+    if (h) h.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    saveState();
+  }
+
+  function setupCollapsibles() {
+    document.querySelectorAll('.ystc-section-h[data-section-toggle]').forEach(function (h) {
+      h.addEventListener('click', function () { toggleSection(h.getAttribute('data-section-toggle')); });
+      h.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleSection(h.getAttribute('data-section-toggle'));
+        }
+      });
+    });
+  }
+
+  /* ============================ SECTION SUMMARIES ============================ */
+
+  function setSummary(key, text) {
+    var el = document.querySelector('[data-section-summary="' + key + '"]');
+    if (el) el.textContent = text;
+  }
+
+  function updateSummaries(r) {
+    // r = result object from calculate()
+    var residencyLabel = t('res_' + r.residency);
+    var occObj = OCCUPATIONS.find(function (o) { return o.key === r.occupation; });
+    var occLabel = occObj ? occObj.label[lang] : '';
+    setSummary('details', r.year + ' · ' + residencyLabel + ' · ' + occLabel);
+
+    setSummary('income', r.totalIncome > 0 ? fmt(r.totalIncome) : '—');
+
+    var dedCount = 0;
+    document.querySelectorAll('.ystc-ded-input').forEach(function (i) {
+      if (parseFloat(i.value) > 0) dedCount++;
+    });
+    setSummary('deductions', dedCount ? dedCount + ' · ' + fmt(r.totalDeductions) : '—');
+
+    var others = [];
+    if ($('ystc-help').checked)  others.push('HELP/HECS');
+    if ($('ystc-medex').checked) others.push('Medicare exempt');
+    if ($('ystc-phi').checked)   others.push('PHI');
+    setSummary('other', others.length ? others.join(' · ') : '—');
+
+    setSummary('paid', r.totalPrepaid > 0 ? fmt(r.totalPrepaid) : '—');
+  }
+
   /* ============================ INIT ============================ */
 
   function init() {
     injectUI();
     if (!document.getElementById('ystc-root')) return; // markup not on page
     setupCombo();
+    setupCollapsibles();
+    loadState();
     applyLang(); // also calls renderDeductions + calculate
 
     ['ystc-year', 'ystc-residency',
