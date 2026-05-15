@@ -1076,7 +1076,7 @@
      existing #ystc-root, this injects the full HTML + CSS at runtime. */
 
   var UI_CSS = [
-    '#ystc-root, #ystc-root *, #ystc-root *::before, #ystc-root *::after { box-sizing: border-box; }',
+    '#ystc-root, #ystc-root *, #ystc-root *::before, #ystc-root *::after { box-sizing: border-box; -webkit-text-fill-color: currentColor; }',
     '#ystc-root { --ys-navy: #0A1F44; --ys-text: #0A1F44; --ys-muted: #555555; --ys-border: #E8E8E5; --ys-soft: #F7F7F5; --ys-mint: #5DCAA5; --ys-white: #FFFFFF; --ys-w-12: rgba(255,255,255,0.12); --ys-w-20: rgba(255,255,255,0.22); --ys-w-55: rgba(255,255,255,0.55); --ys-w-70: rgba(255,255,255,0.72); font-family: \'Space Grotesk\', -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: var(--ys-text); max-width: 1120px; margin: 0 auto; line-height: 1.5; }',
     '.ystc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; margin-bottom: 28px; }',
     '.ystc-head-text { flex: 1; min-width: 0; }',
