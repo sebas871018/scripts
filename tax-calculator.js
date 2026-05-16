@@ -59,7 +59,8 @@
       msg_sending: 'Sending…',
       msg_sent: 'Sent! Check your inbox — we’ll be in touch shortly with your estimate and a link to our tax services.',
       msg_fail: 'Couldn’t send right now. Please try again or email info@taxbne.com.au.',
-      msg_no_form: 'Form not found — please contact info@taxbne.com.au.',
+      msg_no_form: 'Form not found. Please contact info@taxbne.com.au.',
+      msg_turnstile: 'Please complete the verification check above before sending.',
       tip_year: 'The Australian financial year runs 1 July – 30 June. Select the year you are estimating for.',
       tip_residency: 'Australian residents are taxed on worldwide income at resident rates. Foreign residents pay non-resident rates with no tax-free threshold. Working Holiday Makers (417/462 visa) have a special rate scale.',
       tip_occupation: 'Type to search ATO occupation categories. We surface deduction items commonly claimed in your role — eligibility always depends on your specific circumstances.',
@@ -110,7 +111,8 @@
       msg_sending: 'Enviando…',
       msg_sent: '¡Enviado! Revisa tu bandeja de entrada — te contactaremos pronto con tu estimación y un enlace a nuestros servicios fiscales.',
       msg_fail: 'No se pudo enviar ahora. Inténtalo de nuevo o escribe a info@taxbne.com.au.',
-      msg_no_form: 'No se encontró el formulario — escríbenos a info@taxbne.com.au.',
+      msg_no_form: 'No se encontró el formulario. Escríbenos a info@taxbne.com.au.',
+      msg_turnstile: 'Por favor, completa la verificación de arriba antes de enviar.',
       tip_year: 'El año fiscal australiano va del 1 de julio al 30 de junio. Selecciona el año que quieres estimar.',
       tip_residency: 'Los residentes fiscales australianos tributan sobre ingresos mundiales a tasas de residente. Los residentes extranjeros pagan tasas de no residente sin franja libre. Los titulares de visa Working Holiday (417/462) tienen una escala especial.',
       tip_occupation: 'Escribe para buscar entre las categorías de ocupación de la ATO. Mostramos los conceptos de deducción más comunes en tu rol — la elegibilidad siempre depende de tus circunstancias.',
@@ -161,7 +163,8 @@
       msg_sending: 'Enviando…',
       msg_sent: 'Enviado! Verifique sua caixa de entrada — entraremos em contato em breve com sua estimativa e o link para nossos serviços fiscais.',
       msg_fail: 'Não foi possível enviar agora. Tente novamente ou escreva para info@taxbne.com.au.',
-      msg_no_form: 'Formulário não encontrado — escreva para info@taxbne.com.au.',
+      msg_no_form: 'Formulário não encontrado. Escreva para info@taxbne.com.au.',
+      msg_turnstile: 'Por favor, complete a verificação acima antes de enviar.',
       tip_year: 'O ano fiscal australiano vai de 1 de julho a 30 de junho. Selecione o ano que deseja estimar.',
       tip_residency: 'Residentes fiscais australianos são tributados sobre rendimentos mundiais nas alíquotas de residente. Residentes estrangeiros pagam alíquotas de não residente sem faixa isenta. Titulares de visto Working Holiday (417/462) seguem uma tabela especial.',
       tip_occupation: 'Digite para pesquisar nas categorias de ocupação da ATO. Apresentamos as deduções mais comuns na sua profissão — a elegibilidade sempre depende das suas circunstâncias.',
@@ -1024,9 +1027,20 @@
       setMsg(t('msg_no_email'), 'error'); return;
     }
 
+    // Only enforce Turnstile when a widget is mounted (no widget means the
+    // form was published without Turnstile and we can submit directly).
+    var turnstileMounted = !!document.getElementById('ystc-turnstile') &&
+                            window.turnstile && turnstileWidgetId !== null;
+    if (turnstileMounted && !turnstileToken) {
+      setMsg(t('msg_turnstile'), 'error');
+      return;
+    }
+
     var r = calculate();
     var form = populateHiddenForm(r);
     if (!form) { setMsg(t('msg_no_form'), 'error'); return; }
+
+    injectTurnstileToken();
 
     disableButtons(true);
     setMsg(t('msg_sending'), 'success');
@@ -1040,12 +1054,14 @@
       if (result === 'fail') {
         disableButtons(false);
         setMsg(t('msg_fail'), 'error');
+        resetTurnstile();
         return;
       }
       if (withRedirect) {
         window.location.href = 'https://www.taxbne.com.au/services/tax-return';
       } else {
         setMsg(t('msg_sent'), 'success');
+        resetTurnstile();
       }
     });
   }
@@ -1178,6 +1194,8 @@
     '.ystc-btn-ghost { width: 100%; margin-top: 10px; padding: 12px 20px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ys-w-70); background: transparent; border: 1px solid var(--ys-w-20); border-radius: 8px; cursor: pointer; transition: color 120ms, border-color 120ms; }',
     '.ystc-btn-ghost:hover { color: var(--ys-white); border-color: var(--ys-white); }',
     '.ystc-btn-white:disabled, .ystc-btn-ghost:disabled { opacity: 0.55; cursor: not-allowed; }',
+    '.ystc-turnstile-wrap { margin: 18px 0 0; min-height: 65px; display: flex; justify-content: center; }',
+    '.ystc-turnstile-wrap:empty, .ystc-turnstile-wrap #ystc-turnstile:empty { min-height: 0; }',
     '.ystc-msg { margin: 14px 0 0; font-size: 13px; min-height: 1.2em; color: var(--ys-w-70); line-height: 1.5; }',
     '.ystc-msg.error   { color: #FFB4A8; }',
     '.ystc-msg.success { color: var(--ys-mint); }',
@@ -1305,6 +1323,7 @@
           '<p class="ystc-cta-intro" data-i18n="h_cta">.</p>',
           '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-name" data-i18n="f_name">Your name</label><input type="text" id="ystc-name" class="ystc-dark-input" autocomplete="name"></div>',
           '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-email" data-i18n="f_email">Your email</label><input type="email" id="ystc-email" class="ystc-dark-input" autocomplete="email"></div>',
+          '<div class="ystc-turnstile-wrap"><div id="ystc-turnstile"></div></div>',
           '<button type="button" id="ystc-btn-primary" class="ystc-btn-white" data-i18n="btn_primary">Send estimate &amp; start a tax return</button>',
           '<button type="button" id="ystc-btn-secondary" class="ystc-btn-ghost" data-i18n="btn_secondary">Just email me the estimate</button>',
           '<p id="ystc-msg" class="ystc-msg"></p>',
@@ -1464,6 +1483,89 @@
     setSummary('paid', r.totalPrepaid > 0 ? fmt(r.totalPrepaid) : '—');
   }
 
+  /* ============================ TURNSTILE ============================ */
+
+  var turnstileToken = null;
+  var turnstileWidgetId = null;
+
+  function readSitekeyFromForm() {
+    var form = document.getElementById('tax-calc-form');
+    if (!form) return null;
+    var sitekey = form.getAttribute('data-turnstile-sitekey');
+    // Remove so Webflow's form library stops trying to render its own widget
+    // inside the hidden form (it would never load because the form is offscreen).
+    if (sitekey) form.removeAttribute('data-turnstile-sitekey');
+    // Webflow keeps the submit button disabled until Turnstile reports ready;
+    // because the form is hidden, that never fires. Re-enable it manually.
+    var btn = form.querySelector('input[type="submit"], button[type="submit"]');
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('w-form-loading');
+    }
+    return sitekey;
+  }
+
+  function setTurnstileToken(tok) { turnstileToken = tok || null; }
+
+  function injectTurnstileToken() {
+    var form = document.getElementById('tax-calc-form');
+    if (!form || !turnstileToken) return;
+    var input = form.querySelector('input[name="cf-turnstile-response"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'cf-turnstile-response';
+      form.appendChild(input);
+    }
+    input.value = turnstileToken;
+  }
+
+  function resetTurnstile() {
+    turnstileToken = null;
+    try {
+      if (window.turnstile && turnstileWidgetId !== null) {
+        window.turnstile.reset(turnstileWidgetId);
+      }
+    } catch (e) {}
+  }
+
+  function renderTurnstileWidget(sitekey) {
+    if (!sitekey || !window.turnstile) return;
+    var mount = document.getElementById('ystc-turnstile');
+    if (!mount) return;
+    try {
+      turnstileWidgetId = window.turnstile.render(mount, {
+        sitekey: sitekey,
+        theme: 'dark',
+        size: 'flexible',
+        callback: function (token) { setTurnstileToken(token); },
+        'expired-callback': function () { setTurnstileToken(null); },
+        'error-callback':   function () { setTurnstileToken(null); }
+      });
+    } catch (e) {}
+  }
+
+  function setupTurnstile() {
+    var sitekey = readSitekeyFromForm();
+    if (!sitekey) return; // form doesn't use Turnstile, nothing to do
+    document.getElementById('ystc-turnstile').setAttribute('data-sitekey', sitekey);
+
+    if (window.turnstile) {
+      renderTurnstileWidget(sitekey);
+      return;
+    }
+
+    window.ystcTurnstileReady = function () { renderTurnstileWidget(sitekey); };
+
+    if (!document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
+      var s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=ystcTurnstileReady&render=explicit';
+      s.async = true;
+      s.defer = true;
+      document.head.appendChild(s);
+    }
+  }
+
   /* ============================ INIT ============================ */
 
   function init() {
@@ -1471,6 +1573,7 @@
     if (!document.getElementById('ystc-root')) return; // markup not on page
     setupCombo();
     setupCollapsibles();
+    setupTurnstile();
     loadState();
     applyLang(); // also calls renderDeductions + calculate
 
