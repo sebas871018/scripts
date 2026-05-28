@@ -7,7 +7,7 @@ window.__PSI_T = {
     back: '← Back',
     next: 'Next →',
     seeResult: 'See Assessment →',
-    contactSection: 'Step 7 of 7 — Your Details',
+    contactSection: 'Step 8 of 8 - Your Details',
     contactQ: 'Discuss your assessment with us',
     contactHelp: 'Enter your details below and our team at Y&S Accounting will reach out to review your PSI assessment results, answer your questions, and discuss recommended next steps.',
     phoneLabel: 'Phone number',
@@ -46,93 +46,104 @@ window.__PSI_T = {
     questions: [
       {
         id: 'income_type',
-        section: 'Step 1 of 7 — Income Character',
+        section: 'Step 1 of 8 - Income Character',
         q: 'Is more than 50% of the income from a contract paid for the individual\'s personal skills, knowledge, expertise or efforts?',
-        help: 'PSI is income mainly a reward for an individual\'s personal labour. If income is mainly from selling goods, using income-producing assets (e.g. a truck, plant), or from a business structure (employees doing the work), it is NOT PSI. PAYG salary/wages is excluded.',
+        help: 'PSI is income mainly a reward for an individual\'s personal labour. If income is mainly from selling goods, using income-producing assets (e.g. a truck, plant), or from a business structure (employees doing the work), it is NOT PSI. PAYG salary/wages is excluded. Apply this question to your largest stream of income, then re-run the assessment for any materially different contract - PSI is tested contract by contract.',
         options: [
-          { v: 'yes', t: 'Yes — predominantly personal skills/effort' },
-          { v: 'no_goods', t: 'No — mainly from sale of goods' },
-          { v: 'no_assets', t: 'No — mainly from use of income-producing assets' },
-          { v: 'no_structure', t: 'No — mainly from a business structure (staff, systems)' },
+          { v: 'yes', t: 'Yes - predominantly personal skills/effort' },
+          { v: 'no_goods', t: 'No - mainly from sale of goods' },
+          { v: 'no_assets', t: 'No - mainly from use of income-producing assets' },
+          { v: 'no_structure', t: 'No - mainly from a business structure (staff, systems)' },
           { v: 'employee', t: 'Income is PAYG salary/wages (employee)' }
         ]
       },
       {
         id: 'results_test',
-        section: 'Step 2 of 7 — Results Test',
+        section: 'Step 2 of 8 - Results Test',
         q: 'For at least 75% of the PSI, do ALL THREE of these apply?',
-        help: '(1) Paid to produce a specific result, (2) required to supply own tools/equipment to do the work, AND (3) liable to rectify defects at own cost. Passing the results test alone makes the individual/entity a Personal Services Business (PSB) — PSI rules do NOT apply.',
+        help: '(1) Paid to produce a specific result, (2) required to supply own tools/equipment to do the work, AND (3) liable to rectify defects at own cost. Passing the results test alone makes the individual/entity a Personal Services Business (PSB) - PSI rules do NOT apply.',
         options: [
-          { v: 'yes', t: 'Yes — all three are met for ≥75% of PSI' },
+          { v: 'yes', t: 'Yes - all three are met for ≥75% of PSI' },
           { v: 'partial', t: 'Only one or two are met' },
-          { v: 'no', t: 'No — none are clearly met' }
+          { v: 'no', t: 'No - none are clearly met' }
         ]
       },
       {
         id: 'eighty_percent',
-        section: 'Step 3 of 7 — 80% Rule',
+        section: 'Step 3 of 8 - 80% Rule',
         q: 'Does 80% or more of the PSI in the year come from ONE client (and that client\'s associates)?',
         help: 'If yes, the individual/entity CANNOT self-assess as a PSB. They would need to apply to the ATO for a Personal Services Business Determination (PSBD), or the PSI rules will apply.',
         options: [
-          { v: 'yes', t: 'Yes — 80% or more from one client' },
-          { v: 'no', t: 'No — spread across multiple unrelated clients' },
+          { v: 'yes', t: 'Yes - 80% or more from one client' },
+          { v: 'no', t: 'No - less than 80% comes from any single client and its associates' },
           { v: 'unsure', t: 'Unsure / first year' }
         ]
       },
       {
         id: 'unrelated_clients',
-        section: 'Step 4 of 7 — Unrelated Clients Test',
-        q: 'Does the individual provide services to TWO OR MORE unrelated clients, won as a result of offers to the public (advertising, website, tenders, word-of-mouth)?',
-        help: 'Listing on a single labour-hire firm or agency does NOT count as making offers to the public.',
+        section: 'Step 4 of 8 - Unrelated Clients Test',
+        q: 'Does the individual provide services to TWO OR MORE unrelated clients, won as a result of offers to the public (advertising, public-facing website, public tenders, business directories, broadcast media)?',
+        help: 'Word-of-mouth referrals do NOT count, except in narrow niche industries where the ATO accepts word-of-mouth is the only realistic way to reach the market. Listing on a single labour-hire firm or agency does NOT count as making offers to the public.',
         options: [
-          { v: 'yes', t: 'Yes — two or more unrelated clients won via public offers' },
+          { v: 'yes', t: 'Yes - two or more unrelated clients won via public offers' },
           { v: 'no', t: 'No' }
         ]
       },
       {
         id: 'employment_test',
-        section: 'Step 5 of 7 — Employment & Premises',
-        q: 'Does the entity engage others (employees/contractors) to perform at least 20% (by market value) of the PRINCIPAL work, OR have an apprentice for at least half the year? AND/OR maintain separate business premises used exclusively and >50% for the PSI activity, physically separate from home and clients?',
-        help: 'Either the Employment Test OR the Business Premises Test is sufficient (in combination with the 80% rule being failed).',
+        section: 'Step 5 of 8 - Employment Test',
+        q: 'Does the entity engage one or more entities (employees or subcontractors) to perform at least 20% (by market value) of the PRINCIPAL work for the year? An apprentice engaged for at least half the year also satisfies the test.',
+        help: 'Principal work is the work you must perform to fulfil the contract. Bookkeeping, invoicing, scheduling and administration are NOT principal work. The 20% is measured by market value of the work, not by hours or by what you happen to pay.',
         options: [
-          { v: 'employment', t: 'Yes — meets the Employment Test' },
-          { v: 'premises', t: 'Yes — meets the Business Premises Test' },
-          { v: 'both', t: 'Yes — both tests are met' },
-          { v: 'no', t: 'No — neither test is met' }
+          { v: 'yes', t: 'Yes - meets the Employment Test (>=20% principal work by market value, or apprentice >= half year)' },
+          { v: 'no', t: 'No - does not meet the Employment Test' }
+        ]
+      },
+      {
+        id: 'premises_test',
+        section: 'Step 6 of 8 - Business Premises Test',
+        q: 'Throughout the WHOLE income year, do you maintain business premises that meet ALL FOUR of these conditions?',
+        help: '(1) Mainly used for the PSI work; (2) used exclusively by the entity; (3) physically separate from any private residence of yours or your associates; (4) physically separate from the premises of any client. A spare bedroom or coworking hot-desk does NOT pass.',
+        options: [
+          { v: 'yes', t: 'Yes - all four conditions are met throughout the whole year' },
+          { v: 'no', t: 'No - one or more conditions are not met' }
         ]
       },
       {
         id: 'restructure',
-        section: 'Step 6 of 7 — Restructure Intent',
+        section: 'Step 7 of 8 - Restructure Intent',
         q: 'Is the primary purpose of operating through a company/trust to retain profits at the corporate rate, split income with associates (spouse/family), or otherwise reduce tax compared to receiving the income personally?',
-        help: 'Even where the PSI rules do NOT apply (i.e. the entity is a PSB), Part IVA (general anti-avoidance) and the ATO\'s position in PCG 2021/4 / TR 2022/3 / IT 2503 may still treat income-splitting or profit retention as a scheme. Salary paid to the individual must be commensurate with the services they perform.',
+        help: 'Even where the PSI rules do NOT apply (i.e. the entity is a PSB), Part IVA (general anti-avoidance) and the ATO\'s position in PCG 2025/5 (finalised 28 November 2025) may still treat income-splitting, profit retention or uncommercial associate payments as a scheme. Arrangements moved to a low-risk position by 30 June 2027 are unlikely to attract compliance attention. Salary paid to the individual must be commensurate with the services they perform.',
         options: [
-          { v: 'commercial', t: 'No — genuine commercial reasons (liability, clients require entity, growth)' },
-          { v: 'mixed', t: 'Partly — commercial reasons but tax efficiency is a factor' },
-          { v: 'tax', t: 'Yes — primarily tax-driven (retention or splitting)' }
+          { v: 'commercial', t: 'No - genuine commercial reasons (liability, clients require entity, growth)' },
+          { v: 'mixed', t: 'Partly - commercial reasons but tax efficiency is a factor' },
+          { v: 'tax', t: 'Yes - primarily tax-driven (retention or splitting)' }
         ]
       }
     ],
     findings: {
-      employee: 'Income is PAYG salary/wages — PSI rules do not apply to employees.',
-      notPsi: 'Income is NOT PSI — it is mainly from goods, assets, or a business structure.',
-      isPsi: 'Income IS PSI — more than 50% is a reward for personal skills/effort.',
-      passResults: 'PASSES the Results Test — qualifies as a Personal Services Business (PSB). PSI rules do NOT apply.',
+      employee: 'Income is PAYG salary/wages - PSI rules do not apply to employees.',
+      notPsi: 'Income is NOT PSI - it is mainly from goods, assets, or a business structure.',
+      isPsi: 'Income IS PSI - more than 50% is a reward for personal skills/effort.',
+      partialResults: 'Partial Results Test indicators are present. While this is not a self-assessable PSB pass, it may support a PSB Determination (PSBD) application - speak to your accountant before relying on attribution.',
+      passResults: 'PASSES the Results Test - qualifies as a Personal Services Business (PSB). PSI rules do NOT apply.',
       failResults: 'Does not pass the Results Test.',
       unsure80: 'You indicated uncertainty about the 80% rule. If 80% or more of your PSI comes from one client, you cannot self-assess as a PSB and must apply for a PSB Determination from the ATO. Verify this threshold before relying on this assessment.',
-      fail80: '80% or more of PSI from one client — cannot self-assess as a PSB. A PSB Determination from the ATO is required, otherwise PSI rules apply.',
+      fail80: '80% or more of PSI from one client - cannot self-assess as a PSB. A PSB Determination from the ATO is required, otherwise PSI rules apply.',
       passUnrelated: 'PASSES the Unrelated Clients Test.',
       passEmployment: 'PASSES the Employment Test.',
       passPremises: 'PASSES the Business Premises Test.',
       passOther: 'Qualifies as a PSB (less-than-80% rule + at least one other test). PSI rules do NOT apply.',
       failAll: 'Does not satisfy any of the alternative PSB tests. PSI rules APPLY.',
       restructureBlocked: 'Restructuring to a company will NOT defeat the PSI attribution rules. Net PSI is attributed to the individual regardless of entity.',
-      restructureTax: 'Even as a PSB, a tax-driven restructure attracts Part IVA risk and ATO attention under PCG 2021/4 / IT 2503. Income splitting with associates not commensurate with their contribution will likely be challenged.',
+      restructureTax: 'Even as a PSB, a tax-driven restructure attracts Part IVA risk under PCG 2025/5 (finalised 28 November 2025). Income splitting with associates who do not contribute, profit retention for tax deferral, or uncommercial associate payments are higher-risk indicators. Move to a low-risk arrangement before 30 June 2027 to avoid compliance attention.',
       restructureMixed: 'Mixed-purpose restructure: defensible but should be documented. Salary to the individual must reflect the value of services performed; retained profits and distributions should have a commercial rationale.',
-      restructureCommercial: 'Genuine commercial restructure with PSB status — generally compliant. Maintain documentation of commercial drivers and ensure arm\'s-length remuneration.',
-      notPsiNote: 'Income is not PSI — normal business/structuring rules apply (subject to general Part IVA principles).'
+      restructureCommercial: 'Commercial purpose stated and PSB status achieved. Under PCG 2025/5, this is not automatically low-risk - verify all three low-risk indicators: (i) commercial salary paid to the service provider in the year it is earned, (ii) no profit retention for tax deferral, (iii) no associate distributions disproportionate to contribution. Document the commercial drivers.',
+      notPsiNote: 'Income is not PSI - normal business/structuring rules apply (subject to general Part IVA principles).'
     },
     verdicts: {
+      compliantGreenEmployee: { title: '✓ Not Applicable', text: 'Income is PAYG salary/wages. PSI rules do not apply because you are an employee, not a contractor.' },
+      compliantGreenNotPsi: { title: '✓ Not PSI', text: 'Income is not PSI - it comes mainly from goods, assets, or a business structure. Standard business taxation applies.' },
       compliantGreen: { title: '✓ Compliant', text: 'PSI rules do not apply (or income is not PSI). A corporate structure is defensible.' },
       compliantAmber: { title: '⚠ Compliant with caveats', text: 'PSB status achieved, but restructure must be documented and remuneration commercial.' },
       partIvaRed: { title: '✗ Part IVA Risk', text: 'PSB status alone does not justify a tax-driven restructure. Anti-avoidance risk is elevated.' },
@@ -141,24 +152,25 @@ window.__PSI_T = {
     },
     nextSteps: {
       notPsi1: 'Confirm income classification with supporting contracts and invoicing evidence.',
-      notPsi2: 'Standard structuring considerations apply — review against general Part IVA principles.',
+      notPsi2: 'Standard structuring considerations apply - review against general Part IVA principles.',
       psb1: 'Document evidence supporting PSB status (contracts showing results basis, list of unrelated clients, employment records, premises lease).',
       psb2: 'Review director/shareholder remuneration to ensure it reflects the value of personal services performed.',
-      psb3: 'Reassess income-splitting arrangements against PCG 2021/4 risk gateways and traffic-light system.',
+      psb3: 'Reassess income-splitting, retention and associate distributions against the PCG 2025/5 low-risk / higher-risk indicators - genuine attempts to move to a low-risk arrangement by 30 June 2027 are unlikely to attract compliance attention.',
       psb4: 'Consider obtaining a private binding ruling before implementing the restructure.',
-      psb5: 'Reassess PSB status annually — it is tested year-by-year.',
-      determination1: 'Lodge a PSB Determination application with the ATO before relying on PSB status.',
+      psb5: 'Reassess PSB status annually - it is tested year-by-year.',
+      determination1: 'Consider a PSB Determination application with the ATO - note that the Commissioner only issues a determination in unusual circumstances (for example a one-off long-term contract in an industry where shorter engagements are normal). Most taxpayers in this bucket will end up applying PSI attribution.',
       determination2: 'In the meantime, apply PSI attribution rules to net income.',
       apply1: 'Apply PSI attribution: net PSI flows to the individual regardless of entity.',
-      apply2: 'Limited deductions only — review allowable deductions under s 85-10 to s 85-40.',
-      apply3: 'Restructure for tax minimisation will not work — focus on legitimate business expansion to potentially meet PSB tests in future years.'
+      apply2: 'Limited deductions only - review allowable deductions under s 85-10 to s 85-40.',
+      apply3: 'Restructure for tax minimisation will not work - focus on legitimate business expansion to potentially meet PSB tests in future years.'
     },
     references: [
-      'ITAA 1997 Part 2-42 (Divisions 84–87) — PSI rules',
-      'TR 2022/3 — PSI & PSB',
-      'IT 2503 — Incorporation of professional practices',
-      'PCG 2021/4 — Allocation of professional firm profits',
-      'ITAA 1936 Part IVA — General anti-avoidance'
+      'ITAA 1997 Part 2-42 (Divisions 84-87) - PSI rules',
+      'PCG 2025/5 - Personal services businesses and Part IVA (finalised 28 November 2025; 30 June 2027 transition)',
+      'TR 2022/3 - PSI & PSB',
+      'IT 2503 - Incorporation of professional practices',
+      'PCG 2021/4 - Allocation of professional firm profits (professional firms only)',
+      'ITAA 1936 Part IVA - General anti-avoidance'
     ]
   },
 
@@ -169,7 +181,7 @@ window.__PSI_T = {
     back: '← Atrás',
     next: 'Siguiente →',
     seeResult: 'Ver Evaluación →',
-    contactSection: 'Paso 7 de 7 — Sus Datos',
+    contactSection: 'Paso 8 de 8 - Sus Datos',
     contactQ: 'Hablemos sobre su evaluación',
     contactHelp: 'Ingrese sus datos a continuación y nuestro equipo de Y&S Accounting se comunicará con usted para revisar los resultados de su evaluación PSI, responder sus preguntas y analizar los próximos pasos recomendados.',
     phoneLabel: 'Número de teléfono',
@@ -208,93 +220,104 @@ window.__PSI_T = {
     questions: [
       {
         id: 'income_type',
-        section: 'Paso 1 de 7 — Carácter del Ingreso',
+        section: 'Paso 1 de 8 - Carácter del Ingreso',
         q: '¿Más del 50% del ingreso proviene de un contrato pagado por las habilidades, conocimientos, experiencia o esfuerzos personales del individuo?',
-        help: 'El PSI es ingreso principalmente como recompensa por el trabajo personal de un individuo. Si el ingreso proviene principalmente de la venta de bienes, del uso de activos generadores de ingresos (ej. un camión, maquinaria), o de una estructura empresarial (empleados realizando el trabajo), NO es PSI. El salario PAYG está excluido.',
+        help: 'El PSI es ingreso principalmente como recompensa por el trabajo personal de un individuo. Si el ingreso proviene principalmente de la venta de bienes, del uso de activos generadores de ingresos (ej. un camión, maquinaria), o de una estructura empresarial (empleados realizando el trabajo), NO es PSI. El salario PAYG está excluido. Aplique esta pregunta a su mayor flujo de ingresos y vuelva a hacer la evaluación para cualquier contrato materialmente distinto - el PSI se prueba contrato por contrato.',
         options: [
-          { v: 'yes', t: 'Sí — predominantemente habilidades/esfuerzo personal' },
-          { v: 'no_goods', t: 'No — principalmente de la venta de bienes' },
-          { v: 'no_assets', t: 'No — principalmente del uso de activos generadores de ingresos' },
-          { v: 'no_structure', t: 'No — principalmente de una estructura empresarial (personal, sistemas)' },
+          { v: 'yes', t: 'Sí - predominantemente habilidades/esfuerzo personal' },
+          { v: 'no_goods', t: 'No - principalmente de la venta de bienes' },
+          { v: 'no_assets', t: 'No - principalmente del uso de activos generadores de ingresos' },
+          { v: 'no_structure', t: 'No - principalmente de una estructura empresarial (personal, sistemas)' },
           { v: 'employee', t: 'El ingreso es salario PAYG (empleado)' }
         ]
       },
       {
         id: 'results_test',
-        section: 'Paso 2 de 7 — Prueba de Resultados',
+        section: 'Paso 2 de 8 - Prueba de Resultados',
         q: 'Para al menos el 75% del PSI, ¿se cumplen LAS TRES condiciones?',
-        help: '(1) Pagado para producir un resultado específico, (2) requerido a proporcionar sus propias herramientas/equipos para hacer el trabajo, Y (3) responsable de rectificar defectos a su propio costo. Pasar la prueba de resultados por sí sola convierte al individuo/entidad en un Negocio de Servicios Personales (PSB) — las reglas PSI NO aplican.',
+        help: '(1) Pagado para producir un resultado específico, (2) requerido a proporcionar sus propias herramientas/equipos para hacer el trabajo, Y (3) responsable de rectificar defectos a su propio costo. Pasar la prueba de resultados por sí sola convierte al individuo/entidad en un Negocio de Servicios Personales (PSB) - las reglas PSI NO aplican.',
         options: [
-          { v: 'yes', t: 'Sí — las tres se cumplen para ≥75% del PSI' },
+          { v: 'yes', t: 'Sí - las tres se cumplen para ≥75% del PSI' },
           { v: 'partial', t: 'Solo una o dos se cumplen' },
-          { v: 'no', t: 'No — ninguna se cumple claramente' }
+          { v: 'no', t: 'No - ninguna se cumple claramente' }
         ]
       },
       {
         id: 'eighty_percent',
-        section: 'Paso 3 de 7 — Regla del 80%',
+        section: 'Paso 3 de 8 - Regla del 80%',
         q: '¿El 80% o más del PSI en el año proviene de UN solo cliente (y los asociados de ese cliente)?',
         help: 'Si es así, el individuo/entidad NO PUEDE auto-evaluarse como PSB. Tendría que solicitar al ATO una Determinación de Negocio de Servicios Personales (PSBD), o las reglas PSI aplicarán.',
         options: [
-          { v: 'yes', t: 'Sí — 80% o más de un solo cliente' },
-          { v: 'no', t: 'No — distribuido entre múltiples clientes no relacionados' },
+          { v: 'yes', t: 'Sí - 80% o más de un solo cliente' },
+          { v: 'no', t: 'No - menos del 80% proviene de un solo cliente y sus asociados' },
           { v: 'unsure', t: 'Inseguro / primer año' }
         ]
       },
       {
         id: 'unrelated_clients',
-        section: 'Paso 4 de 7 — Prueba de Clientes No Relacionados',
-        q: '¿El individuo presta servicios a DOS O MÁS clientes no relacionados, obtenidos como resultado de ofertas al público (publicidad, sitio web, licitaciones, boca a boca)?',
-        help: 'Estar listado en una sola agencia de contratación o intermediario laboral NO cuenta como hacer ofertas al público.',
+        section: 'Paso 4 de 8 - Prueba de Clientes No Relacionados',
+        q: '¿El individuo presta servicios a DOS O MÁS clientes no relacionados, obtenidos como resultado de ofertas al público (publicidad, sitio web público, licitaciones públicas, directorios comerciales, medios de difusión)?',
+        help: 'Las referencias de boca a boca NO cuentan, excepto en industrias de nicho muy específicas donde el ATO acepta que el boca a boca es la única forma realista de llegar al mercado. Estar listado en una sola agencia de contratación o intermediario laboral NO cuenta como hacer ofertas al público.',
         options: [
-          { v: 'yes', t: 'Sí — dos o más clientes no relacionados obtenidos a través de ofertas públicas' },
+          { v: 'yes', t: 'Sí - dos o más clientes no relacionados obtenidos a través de ofertas públicas' },
           { v: 'no', t: 'No' }
         ]
       },
       {
         id: 'employment_test',
-        section: 'Paso 5 de 7 — Empleo y Locales',
-        q: '¿La entidad contrata a otros (empleados/contratistas) para realizar al menos el 20% (por valor de mercado) del trabajo PRINCIPAL, O tiene un aprendiz por al menos medio año? Y/O mantiene locales comerciales separados utilizados exclusivamente y >50% para la actividad PSI, físicamente separados del hogar y los clientes?',
-        help: 'La Prueba de Empleo O la Prueba de Locales Comerciales es suficiente (en combinación con no cumplir la regla del 80%).',
+        section: 'Paso 5 de 8 - Prueba de Empleo',
+        q: '¿La entidad contrata a una o más entidades (empleados o subcontratistas) para realizar al menos el 20% (por valor de mercado) del trabajo PRINCIPAL del año? Un aprendiz contratado por al menos medio año también satisface la prueba.',
+        help: 'El trabajo principal es el que debe realizar para cumplir el contrato. La contabilidad, facturación, agenda y administración NO son trabajo principal. El 20% se mide por valor de mercado del trabajo, no por horas ni por lo que efectivamente pague.',
         options: [
-          { v: 'employment', t: 'Sí — cumple la Prueba de Empleo' },
-          { v: 'premises', t: 'Sí — cumple la Prueba de Locales Comerciales' },
-          { v: 'both', t: 'Sí — ambas pruebas se cumplen' },
-          { v: 'no', t: 'No — ninguna prueba se cumple' }
+          { v: 'yes', t: 'Sí - cumple la Prueba de Empleo (>=20% del trabajo principal por valor de mercado, o aprendiz >= medio año)' },
+          { v: 'no', t: 'No - no cumple la Prueba de Empleo' }
+        ]
+      },
+      {
+        id: 'premises_test',
+        section: 'Paso 6 de 8 - Prueba de Locales Comerciales',
+        q: 'Durante TODO el año de ingresos, ¿mantiene locales comerciales que cumplan LAS CUATRO condiciones siguientes?',
+        help: '(1) Utilizados principalmente para el trabajo PSI; (2) utilizados exclusivamente por la entidad; (3) físicamente separados de cualquier residencia privada suya o de sus asociados; (4) físicamente separados de los locales de cualquier cliente. Un cuarto de huéspedes o un escritorio compartido en coworking NO pasa.',
+        options: [
+          { v: 'yes', t: 'Sí - las cuatro condiciones se cumplen durante todo el año' },
+          { v: 'no', t: 'No - una o más condiciones no se cumplen' }
         ]
       },
       {
         id: 'restructure',
-        section: 'Paso 6 de 7 — Intención de Reestructuración',
+        section: 'Paso 7 de 8 - Intención de Reestructuración',
         q: '¿El propósito principal de operar a través de una empresa/fideicomiso es retener ganancias a la tasa corporativa, dividir ingresos con asociados (cónyuge/familia), o de otra manera reducir impuestos en comparación con recibir el ingreso personalmente?',
-        help: 'Incluso cuando las reglas PSI NO apliquen (es decir, la entidad es un PSB), la Parte IVA (anti-elusión general) y la posición del ATO en PCG 2021/4 / TR 2022/3 / IT 2503 aún pueden tratar la división de ingresos o retención de ganancias como un esquema. El salario pagado al individuo debe ser proporcional a los servicios que realiza.',
+        help: 'Incluso cuando las reglas PSI NO apliquen (es decir, la entidad es un PSB), la Parte IVA (anti-elusión general) y la posición del ATO en PCG 2025/5 (finalizado el 28 de noviembre de 2025) aún pueden tratar la división de ingresos, retención de ganancias o pagos no comerciales a asociados como un esquema. Los arreglos movidos a una posición de bajo riesgo antes del 30 de junio de 2027 no atraerán atención de cumplimiento. El salario pagado al individuo debe ser proporcional a los servicios que realiza.',
         options: [
-          { v: 'commercial', t: 'No — razones comerciales genuinas (responsabilidad, clientes requieren entidad, crecimiento)' },
-          { v: 'mixed', t: 'Parcialmente — razones comerciales pero la eficiencia fiscal es un factor' },
-          { v: 'tax', t: 'Sí — principalmente impulsado por impuestos (retención o división)' }
+          { v: 'commercial', t: 'No - razones comerciales genuinas (responsabilidad, clientes requieren entidad, crecimiento)' },
+          { v: 'mixed', t: 'Parcialmente - razones comerciales pero la eficiencia fiscal es un factor' },
+          { v: 'tax', t: 'Sí - principalmente impulsado por impuestos (retención o división)' }
         ]
       }
     ],
     findings: {
-      employee: 'El ingreso es salario PAYG — las reglas PSI no aplican a empleados.',
-      notPsi: 'El ingreso NO es PSI — proviene principalmente de bienes, activos o una estructura empresarial.',
-      isPsi: 'El ingreso SÍ es PSI — más del 50% es recompensa por habilidades/esfuerzo personal.',
-      passResults: 'PASA la Prueba de Resultados — califica como Negocio de Servicios Personales (PSB). Las reglas PSI NO aplican.',
+      employee: 'El ingreso es salario PAYG - las reglas PSI no aplican a empleados.',
+      notPsi: 'El ingreso NO es PSI - proviene principalmente de bienes, activos o una estructura empresarial.',
+      isPsi: 'El ingreso SÍ es PSI - más del 50% es recompensa por habilidades/esfuerzo personal.',
+      partialResults: 'Hay indicadores parciales de la Prueba de Resultados. Aunque no constituye una aprobación autoevaluable como PSB, podría respaldar una solicitud de Determinación de PSB (PSBD) - consulte con su contador antes de aplicar la atribución.',
+      passResults: 'PASA la Prueba de Resultados - califica como Negocio de Servicios Personales (PSB). Las reglas PSI NO aplican.',
       failResults: 'No pasa la Prueba de Resultados.',
       unsure80: 'Usted indicó incertidumbre sobre la regla del 80%. Si el 80% o más de su PSI proviene de un solo cliente, no puede auto-evaluarse como PSB y debe solicitar una Determinación de PSB al ATO. Verifique este umbral antes de confiar en esta evaluación.',
-      fail80: '80% o más del PSI proviene de un solo cliente — no puede auto-evaluarse como PSB. Se requiere una Determinación de PSB del ATO, de lo contrario las reglas PSI aplican.',
+      fail80: '80% o más del PSI proviene de un solo cliente - no puede auto-evaluarse como PSB. Se requiere una Determinación de PSB del ATO, de lo contrario las reglas PSI aplican.',
       passUnrelated: 'PASA la Prueba de Clientes No Relacionados.',
       passEmployment: 'PASA la Prueba de Empleo.',
       passPremises: 'PASA la Prueba de Locales Comerciales.',
       passOther: 'Califica como PSB (regla de menos del 80% + al menos una otra prueba). Las reglas PSI NO aplican.',
       failAll: 'No satisface ninguna de las pruebas alternativas de PSB. Las reglas PSI APLICAN.',
       restructureBlocked: 'Reestructurarse a una empresa NO evitará las reglas de atribución de PSI. El PSI neto se atribuye al individuo independientemente de la entidad.',
-      restructureTax: 'Incluso como PSB, una reestructuración impulsada por impuestos atrae el riesgo de la Parte IVA y atención del ATO bajo PCG 2021/4 / IT 2503. La división de ingresos con asociados no proporcional a su contribución probablemente será cuestionada.',
+      restructureTax: 'Incluso como PSB, una reestructuración impulsada por impuestos atrae el riesgo de la Parte IVA bajo PCG 2025/5 (finalizado el 28 de noviembre de 2025). Dividir ingresos con asociados que no contribuyen, retener ganancias para diferir impuestos o pagar montos no comerciales a asociados son indicadores de mayor riesgo. Pase a un arreglo de bajo riesgo antes del 30 de junio de 2027 para evitar atención de cumplimiento.',
       restructureMixed: 'Reestructuración de propósito mixto: defendible pero debe documentarse. El salario al individuo debe reflejar el valor de los servicios prestados; las ganancias retenidas y distribuciones deben tener una justificación comercial.',
-      restructureCommercial: 'Reestructuración comercial genuina con estado de PSB — generalmente cumple. Mantenga documentación de los impulsores comerciales y asegure remuneración a precio de mercado.',
-      notPsiNote: 'El ingreso no es PSI — aplican las reglas normales de estructuración empresarial (sujeto a los principios generales de la Parte IVA).'
+      restructureCommercial: 'Propósito comercial declarado y estado de PSB obtenido. Bajo PCG 2025/5 esto no es automáticamente de bajo riesgo - verifique los tres indicadores: (i) salario comercial pagado al prestador del servicio en el año que se gana, (ii) sin retención de ganancias para diferir impuestos, (iii) sin distribuciones a asociados desproporcionadas con su contribución. Documente los impulsores comerciales.',
+      notPsiNote: 'El ingreso no es PSI - aplican las reglas normales de estructuración empresarial (sujeto a los principios generales de la Parte IVA).'
     },
     verdicts: {
+      compliantGreenEmployee: { title: '✓ No Aplicable', text: 'El ingreso es salario PAYG. Las reglas PSI no aplican porque usted es empleado, no contratista.' },
+      compliantGreenNotPsi: { title: '✓ No es PSI', text: 'El ingreso no es PSI - proviene principalmente de bienes, activos o una estructura empresarial. Aplica la tributación empresarial estándar.' },
       compliantGreen: { title: '✓ Cumple', text: 'Las reglas PSI no aplican (o el ingreso no es PSI). Una estructura corporativa es defendible.' },
       compliantAmber: { title: '⚠ Cumple con salvedades', text: 'Estado de PSB obtenido, pero la reestructuración debe documentarse y la remuneración debe ser comercial.' },
       partIvaRed: { title: '✗ Riesgo de Parte IVA', text: 'El estado de PSB por sí solo no justifica una reestructuración impulsada por impuestos. El riesgo anti-elusión es elevado.' },
@@ -303,24 +326,25 @@ window.__PSI_T = {
     },
     nextSteps: {
       notPsi1: 'Confirme la clasificación del ingreso con contratos de respaldo y evidencia de facturación.',
-      notPsi2: 'Consideraciones estándar de estructuración aplican — revise contra los principios generales de la Parte IVA.',
+      notPsi2: 'Consideraciones estándar de estructuración aplican - revise contra los principios generales de la Parte IVA.',
       psb1: 'Documente evidencia que respalde el estado de PSB (contratos que muestren base de resultados, lista de clientes no relacionados, registros de empleo, contrato de arrendamiento de locales).',
       psb2: 'Revise la remuneración del director/accionista para asegurar que refleje el valor de los servicios personales prestados.',
-      psb3: 'Reevalúe los acuerdos de división de ingresos contra los umbrales de riesgo de PCG 2021/4 y el sistema de semáforo.',
+      psb3: 'Reevalúe los acuerdos de división de ingresos, retención de ganancias y distribuciones a asociados contra los indicadores de bajo / mayor riesgo de PCG 2025/5 - intentos genuinos de pasar a un arreglo de bajo riesgo antes del 30 de junio de 2027 no atraerán atención de cumplimiento.',
       psb4: 'Considere obtener una resolución vinculante privada antes de implementar la reestructuración.',
-      psb5: 'Reevalúe el estado de PSB anualmente — se prueba año tras año.',
-      determination1: 'Presente una solicitud de Determinación de PSB ante el ATO antes de depender del estado de PSB.',
+      psb5: 'Reevalúe el estado de PSB anualmente - se prueba año tras año.',
+      determination1: 'Considere presentar una solicitud de Determinación de PSB ante el ATO - el Comisionado solo emite determinaciones en circunstancias inusuales (por ejemplo, un contrato único de largo plazo en una industria donde lo normal son contratos más cortos). La mayoría de los contribuyentes en esta situación terminarán aplicando la atribución de PSI.',
       determination2: 'Mientras tanto, aplique las reglas de atribución de PSI al ingreso neto.',
       apply1: 'Aplique la atribución de PSI: el PSI neto fluye al individuo independientemente de la entidad.',
-      apply2: 'Solo deducciones limitadas — revise las deducciones permitidas bajo s 85-10 a s 85-40.',
-      apply3: 'La reestructuración para minimizar impuestos no funcionará — enfóquese en expansión empresarial legítima para potencialmente cumplir las pruebas de PSB en años futuros.'
+      apply2: 'Solo deducciones limitadas - revise las deducciones permitidas bajo s 85-10 a s 85-40.',
+      apply3: 'La reestructuración para minimizar impuestos no funcionará - enfóquese en expansión empresarial legítima para potencialmente cumplir las pruebas de PSB en años futuros.'
     },
     references: [
-      'ITAA 1997 Parte 2-42 (Divisiones 84–87) — Reglas PSI',
-      'TR 2022/3 — PSI y PSB',
-      'IT 2503 — Incorporación de prácticas profesionales',
-      'PCG 2021/4 — Asignación de ganancias de firmas profesionales',
-      'ITAA 1936 Parte IVA — Anti-elusión general'
+      'ITAA 1997 Parte 2-42 (Divisiones 84-87) - Reglas PSI',
+      'PCG 2025/5 - Negocios de servicios personales y Parte IVA (finalizado 28 de noviembre de 2025; transición al 30 de junio de 2027)',
+      'TR 2022/3 - PSI y PSB',
+      'IT 2503 - Incorporación de prácticas profesionales',
+      'PCG 2021/4 - Asignación de ganancias de firmas profesionales (solo firmas profesionales)',
+      'ITAA 1936 Parte IVA - Anti-elusión general'
     ]
   },
 
@@ -331,7 +355,7 @@ window.__PSI_T = {
     back: '← Voltar',
     next: 'Próximo →',
     seeResult: 'Ver Avaliação →',
-    contactSection: 'Etapa 7 de 7 — Seus Dados',
+    contactSection: 'Etapa 8 de 8 - Seus Dados',
     contactQ: 'Vamos conversar sobre sua avaliação',
     contactHelp: 'Insira seus dados abaixo e nossa equipe da Y&S Accounting entrará em contato para revisar os resultados da sua avaliação PSI, responder suas perguntas e discutir os próximos passos recomendados.',
     phoneLabel: 'Número de telefone',
@@ -370,93 +394,104 @@ window.__PSI_T = {
     questions: [
       {
         id: 'income_type',
-        section: 'Etapa 1 de 7 — Caráter do Rendimento',
+        section: 'Etapa 1 de 8 - Caráter do Rendimento',
         q: 'Mais de 50% do rendimento provém de um contrato pago pelas habilidades pessoais, conhecimento, experiência ou esforços do indivíduo?',
-        help: 'PSI é rendimento principalmente como recompensa pelo trabalho pessoal de um indivíduo. Se o rendimento provém principalmente da venda de bens, do uso de ativos geradores de rendimento (ex. um caminhão, equipamento), ou de uma estrutura empresarial (funcionários fazendo o trabalho), NÃO é PSI. Salário PAYG está excluído.',
+        help: 'PSI é rendimento principalmente como recompensa pelo trabalho pessoal de um indivíduo. Se o rendimento provém principalmente da venda de bens, do uso de ativos geradores de rendimento (ex. um caminhão, equipamento), ou de uma estrutura empresarial (funcionários fazendo o trabalho), NÃO é PSI. Salário PAYG está excluído. Aplique esta pergunta ao seu maior fluxo de rendimento e refaça a avaliação para qualquer contrato materialmente diferente - o PSI é testado contrato por contrato.',
         options: [
-          { v: 'yes', t: 'Sim — predominantemente habilidades/esforço pessoal' },
-          { v: 'no_goods', t: 'Não — principalmente da venda de bens' },
-          { v: 'no_assets', t: 'Não — principalmente do uso de ativos geradores de rendimento' },
-          { v: 'no_structure', t: 'Não — principalmente de uma estrutura empresarial (equipe, sistemas)' },
+          { v: 'yes', t: 'Sim - predominantemente habilidades/esforço pessoal' },
+          { v: 'no_goods', t: 'Não - principalmente da venda de bens' },
+          { v: 'no_assets', t: 'Não - principalmente do uso de ativos geradores de rendimento' },
+          { v: 'no_structure', t: 'Não - principalmente de uma estrutura empresarial (equipe, sistemas)' },
           { v: 'employee', t: 'Rendimento é salário PAYG (funcionário)' }
         ]
       },
       {
         id: 'results_test',
-        section: 'Etapa 2 de 7 — Teste de Resultados',
+        section: 'Etapa 2 de 8 - Teste de Resultados',
         q: 'Para pelo menos 75% do PSI, AS TRÊS condições se aplicam?',
-        help: '(1) Pago para produzir um resultado específico, (2) obrigado a fornecer suas próprias ferramentas/equipamentos para fazer o trabalho, E (3) responsável por retificar defeitos por sua própria conta. Passar no teste de resultados por si só torna o indivíduo/entidade um Negócio de Serviços Pessoais (PSB) — as regras PSI NÃO se aplicam.',
+        help: '(1) Pago para produzir um resultado específico, (2) obrigado a fornecer suas próprias ferramentas/equipamentos para fazer o trabalho, E (3) responsável por retificar defeitos por sua própria conta. Passar no teste de resultados por si só torna o indivíduo/entidade um Negócio de Serviços Pessoais (PSB) - as regras PSI NÃO se aplicam.',
         options: [
-          { v: 'yes', t: 'Sim — todas as três são atendidas para ≥75% do PSI' },
+          { v: 'yes', t: 'Sim - todas as três são atendidas para ≥75% do PSI' },
           { v: 'partial', t: 'Apenas uma ou duas são atendidas' },
-          { v: 'no', t: 'Não — nenhuma é claramente atendida' }
+          { v: 'no', t: 'Não - nenhuma é claramente atendida' }
         ]
       },
       {
         id: 'eighty_percent',
-        section: 'Etapa 3 de 7 — Regra dos 80%',
+        section: 'Etapa 3 de 8 - Regra dos 80%',
         q: '80% ou mais do PSI no ano vem de UM cliente (e os associados desse cliente)?',
         help: 'Em caso afirmativo, o indivíduo/entidade NÃO PODE se autoavaliar como PSB. Eles precisariam solicitar ao ATO uma Determinação de Negócio de Serviços Pessoais (PSBD), ou as regras PSI se aplicarão.',
         options: [
-          { v: 'yes', t: 'Sim — 80% ou mais de um cliente' },
-          { v: 'no', t: 'Não — distribuído entre múltiplos clientes não relacionados' },
+          { v: 'yes', t: 'Sim - 80% ou mais de um cliente' },
+          { v: 'no', t: 'Não - menos de 80% vem de um único cliente e seus associados' },
           { v: 'unsure', t: 'Incerto / primeiro ano' }
         ]
       },
       {
         id: 'unrelated_clients',
-        section: 'Etapa 4 de 7 — Teste de Clientes Não Relacionados',
-        q: 'O indivíduo presta serviços a DOIS OU MAIS clientes não relacionados, obtidos como resultado de ofertas ao público (publicidade, site, licitações, boca a boca)?',
-        help: 'Estar listado em uma única agência de contratação ou intermediário trabalhista NÃO conta como fazer ofertas ao público.',
+        section: 'Etapa 4 de 8 - Teste de Clientes Não Relacionados',
+        q: 'O indivíduo presta serviços a DOIS OU MAIS clientes não relacionados, obtidos como resultado de ofertas ao público (publicidade, site público, licitações públicas, diretórios comerciais, mídia de difusão)?',
+        help: 'Indicações por boca a boca NÃO contam, exceto em indústrias de nicho muito específicas onde o ATO aceita que boca a boca é a única forma realista de chegar ao mercado. Estar listado em uma única agência de contratação ou intermediário trabalhista NÃO conta como fazer ofertas ao público.',
         options: [
-          { v: 'yes', t: 'Sim — dois ou mais clientes não relacionados obtidos via ofertas públicas' },
+          { v: 'yes', t: 'Sim - dois ou mais clientes não relacionados obtidos via ofertas públicas' },
           { v: 'no', t: 'Não' }
         ]
       },
       {
         id: 'employment_test',
-        section: 'Etapa 5 de 7 — Emprego e Instalações',
-        q: 'A entidade contrata outros (funcionários/contratados) para realizar pelo menos 20% (por valor de mercado) do trabalho PRINCIPAL, OU tem um aprendiz por pelo menos meio ano? E/OU mantém instalações comerciais separadas usadas exclusivamente e >50% para a atividade PSI, fisicamente separadas de casa e clientes?',
-        help: 'O Teste de Emprego OU o Teste de Instalações Comerciais é suficiente (em combinação com não cumprir a regra dos 80%).',
+        section: 'Etapa 5 de 8 - Teste de Emprego',
+        q: 'A entidade contrata uma ou mais entidades (funcionários ou subcontratados) para realizar pelo menos 20% (por valor de mercado) do trabalho PRINCIPAL do ano? Um aprendiz contratado por pelo menos meio ano também satisfaz o teste.',
+        help: 'Trabalho principal é o trabalho que você deve realizar para cumprir o contrato. Contabilidade, faturamento, agendamento e administração NÃO são trabalho principal. Os 20% são medidos pelo valor de mercado do trabalho, não por horas nem pelo que você efetivamente paga.',
         options: [
-          { v: 'employment', t: 'Sim — atende ao Teste de Emprego' },
-          { v: 'premises', t: 'Sim — atende ao Teste de Instalações Comerciais' },
-          { v: 'both', t: 'Sim — ambos os testes são atendidos' },
-          { v: 'no', t: 'Não — nenhum teste é atendido' }
+          { v: 'yes', t: 'Sim - atende ao Teste de Emprego (>=20% do trabalho principal por valor de mercado, ou aprendiz >= meio ano)' },
+          { v: 'no', t: 'Não - não atende ao Teste de Emprego' }
+        ]
+      },
+      {
+        id: 'premises_test',
+        section: 'Etapa 6 de 8 - Teste de Instalações Comerciais',
+        q: 'Durante TODO o ano de rendimentos, você mantém instalações comerciais que cumprem AS QUATRO condições a seguir?',
+        help: '(1) Usadas principalmente para o trabalho PSI; (2) usadas exclusivamente pela entidade; (3) fisicamente separadas de qualquer residência privada sua ou de seus associados; (4) fisicamente separadas das instalações de qualquer cliente. Um quarto de hóspedes ou uma mesa compartilhada em coworking NÃO passa.',
+        options: [
+          { v: 'yes', t: 'Sim - as quatro condições são atendidas durante todo o ano' },
+          { v: 'no', t: 'Não - uma ou mais condições não são atendidas' }
         ]
       },
       {
         id: 'restructure',
-        section: 'Etapa 6 de 7 — Intenção de Reestruturação',
+        section: 'Etapa 7 de 8 - Intenção de Reestruturação',
         q: 'O propósito principal de operar através de uma empresa/trust é reter lucros à taxa corporativa, dividir rendimentos com associados (cônjuge/família), ou de outra forma reduzir impostos em comparação com receber o rendimento pessoalmente?',
-        help: 'Mesmo quando as regras PSI NÃO se aplicam (ou seja, a entidade é um PSB), a Parte IVA (antielisão geral) e a posição do ATO em PCG 2021/4 / TR 2022/3 / IT 2503 ainda podem tratar a divisão de rendimentos ou retenção de lucros como um esquema. O salário pago ao indivíduo deve ser proporcional aos serviços que ele presta.',
+        help: 'Mesmo quando as regras PSI NÃO se aplicam (ou seja, a entidade é um PSB), a Parte IVA (antielisão geral) e a posição do ATO em PCG 2025/5 (finalizado em 28 de novembro de 2025) ainda podem tratar divisão de rendimentos, retenção de lucros ou pagamentos não comerciais a associados como um esquema. Arranjos movidos para uma posição de baixo risco antes de 30 de junho de 2027 não atrairão atenção de conformidade. O salário pago ao indivíduo deve ser proporcional aos serviços que ele presta.',
         options: [
-          { v: 'commercial', t: 'Não — razões comerciais genuínas (responsabilidade, clientes exigem entidade, crescimento)' },
-          { v: 'mixed', t: 'Parcialmente — razões comerciais mas eficiência fiscal é um fator' },
-          { v: 'tax', t: 'Sim — principalmente motivado por impostos (retenção ou divisão)' }
+          { v: 'commercial', t: 'Não - razões comerciais genuínas (responsabilidade, clientes exigem entidade, crescimento)' },
+          { v: 'mixed', t: 'Parcialmente - razões comerciais mas eficiência fiscal é um fator' },
+          { v: 'tax', t: 'Sim - principalmente motivado por impostos (retenção ou divisão)' }
         ]
       }
     ],
     findings: {
-      employee: 'O rendimento é salário PAYG — as regras PSI não se aplicam a funcionários.',
-      notPsi: 'O rendimento NÃO é PSI — provém principalmente de bens, ativos ou uma estrutura empresarial.',
-      isPsi: 'O rendimento É PSI — mais de 50% é recompensa por habilidades/esforço pessoal.',
-      passResults: 'PASSA no Teste de Resultados — qualifica-se como Negócio de Serviços Pessoais (PSB). As regras PSI NÃO se aplicam.',
+      employee: 'O rendimento é salário PAYG - as regras PSI não se aplicam a funcionários.',
+      notPsi: 'O rendimento NÃO é PSI - provém principalmente de bens, ativos ou uma estrutura empresarial.',
+      isPsi: 'O rendimento É PSI - mais de 50% é recompensa por habilidades/esforço pessoal.',
+      partialResults: 'Há indicadores parciais do Teste de Resultados. Embora não constitua aprovação autoavaliável como PSB, pode apoiar um pedido de Determinação de PSB (PSBD) - consulte seu contador antes de aplicar a atribuição.',
+      passResults: 'PASSA no Teste de Resultados - qualifica-se como Negócio de Serviços Pessoais (PSB). As regras PSI NÃO se aplicam.',
       failResults: 'Não passa no Teste de Resultados.',
       unsure80: 'Você indicou incerteza sobre a regra dos 80%. Se 80% ou mais do seu PSI vem de um cliente, você não pode se autoavaliar como PSB e deve solicitar uma Determinação de PSB ao ATO. Verifique este limite antes de confiar nesta avaliação.',
-      fail80: '80% ou mais do PSI vem de um cliente — não pode se autoavaliar como PSB. É necessária uma Determinação de PSB do ATO, caso contrário as regras PSI se aplicam.',
+      fail80: '80% ou mais do PSI vem de um cliente - não pode se autoavaliar como PSB. É necessária uma Determinação de PSB do ATO, caso contrário as regras PSI se aplicam.',
       passUnrelated: 'PASSA no Teste de Clientes Não Relacionados.',
       passEmployment: 'PASSA no Teste de Emprego.',
       passPremises: 'PASSA no Teste de Instalações Comerciais.',
       passOther: 'Qualifica-se como PSB (regra de menos de 80% + pelo menos um outro teste). As regras PSI NÃO se aplicam.',
       failAll: 'Não satisfaz nenhum dos testes alternativos de PSB. As regras PSI SE APLICAM.',
       restructureBlocked: 'Reestruturar para uma empresa NÃO evitará as regras de atribuição de PSI. O PSI líquido é atribuído ao indivíduo independentemente da entidade.',
-      restructureTax: 'Mesmo como PSB, uma reestruturação motivada por impostos atrai risco da Parte IVA e atenção do ATO sob PCG 2021/4 / IT 2503. A divisão de rendimentos com associados não proporcional à sua contribuição provavelmente será contestada.',
+      restructureTax: 'Mesmo como PSB, uma reestruturação motivada por impostos atrai risco da Parte IVA sob PCG 2025/5 (finalizado em 28 de novembro de 2025). Dividir rendimentos com associados que não contribuem, reter lucros para diferir impostos ou pagar valores não comerciais a associados são indicadores de maior risco. Mude para um arranjo de baixo risco antes de 30 de junho de 2027 para evitar atenção de conformidade.',
       restructureMixed: 'Reestruturação de propósito misto: defensável mas deve ser documentada. O salário ao indivíduo deve refletir o valor dos serviços prestados; lucros retidos e distribuições devem ter justificativa comercial.',
-      restructureCommercial: 'Reestruturação comercial genuína com status de PSB — geralmente em conformidade. Mantenha documentação dos motivadores comerciais e garanta remuneração a preço de mercado.',
-      notPsiNote: 'O rendimento não é PSI — aplicam-se as regras normais de estruturação empresarial (sujeito aos princípios gerais da Parte IVA).'
+      restructureCommercial: 'Propósito comercial declarado e status de PSB alcançado. Sob PCG 2025/5 isso não é automaticamente de baixo risco - verifique os três indicadores: (i) salário comercial pago ao prestador do serviço no ano em que é ganho, (ii) sem retenção de lucros para diferir impostos, (iii) sem distribuições a associados desproporcionais à sua contribuição. Documente os motivadores comerciais.',
+      notPsiNote: 'O rendimento não é PSI - aplicam-se as regras normais de estruturação empresarial (sujeito aos princípios gerais da Parte IVA).'
     },
     verdicts: {
+      compliantGreenEmployee: { title: '✓ Não Aplicável', text: 'O rendimento é salário PAYG. As regras PSI não se aplicam porque você é funcionário, não contratado.' },
+      compliantGreenNotPsi: { title: '✓ Não é PSI', text: 'O rendimento não é PSI - vem principalmente de bens, ativos ou uma estrutura empresarial. Aplica-se a tributação empresarial padrão.' },
       compliantGreen: { title: '✓ Em Conformidade', text: 'As regras PSI não se aplicam (ou o rendimento não é PSI). Uma estrutura corporativa é defensável.' },
       compliantAmber: { title: '⚠ Em Conformidade com ressalvas', text: 'Status de PSB alcançado, mas a reestruturação deve ser documentada e a remuneração comercial.' },
       partIvaRed: { title: '✗ Risco da Parte IVA', text: 'O status de PSB por si só não justifica uma reestruturação motivada por impostos. O risco antielisão é elevado.' },
@@ -465,24 +500,25 @@ window.__PSI_T = {
     },
     nextSteps: {
       notPsi1: 'Confirme a classificação do rendimento com contratos de apoio e evidência de faturamento.',
-      notPsi2: 'Considerações padrão de estruturação se aplicam — revise contra os princípios gerais da Parte IVA.',
+      notPsi2: 'Considerações padrão de estruturação se aplicam - revise contra os princípios gerais da Parte IVA.',
       psb1: 'Documente evidências que apoiem o status de PSB (contratos mostrando base de resultados, lista de clientes não relacionados, registros de emprego, contrato de aluguel das instalações).',
       psb2: 'Revise a remuneração do diretor/acionista para garantir que reflita o valor dos serviços pessoais prestados.',
-      psb3: 'Reavalie os acordos de divisão de rendimentos contra os limites de risco de PCG 2021/4 e o sistema de semáforo.',
+      psb3: 'Reavalie os acordos de divisão de rendimentos, retenção de lucros e distribuições a associados contra os indicadores de baixo / maior risco de PCG 2025/5 - tentativas genuínas de mudar para um arranjo de baixo risco antes de 30 de junho de 2027 não atrairão atenção de conformidade.',
       psb4: 'Considere obter uma resolução vinculante privada antes de implementar a reestruturação.',
-      psb5: 'Reavalie o status de PSB anualmente — é testado ano a ano.',
-      determination1: 'Apresente um pedido de Determinação de PSB ao ATO antes de depender do status de PSB.',
+      psb5: 'Reavalie o status de PSB anualmente - é testado ano a ano.',
+      determination1: 'Considere apresentar um pedido de Determinação de PSB ao ATO - o Comissário só emite determinações em circunstâncias incomuns (por exemplo, um contrato único de longo prazo em uma indústria onde o normal são contratos mais curtos). A maioria dos contribuintes nesta situação acabará aplicando a atribuição de PSI.',
       determination2: 'Enquanto isso, aplique as regras de atribuição de PSI ao rendimento líquido.',
       apply1: 'Aplique a atribuição de PSI: o PSI líquido flui para o indivíduo independentemente da entidade.',
-      apply2: 'Apenas deduções limitadas — revise as deduções permitidas sob s 85-10 a s 85-40.',
-      apply3: 'A reestruturação para minimização de impostos não funcionará — concentre-se em expansão empresarial legítima para potencialmente atender aos testes de PSB em anos futuros.'
+      apply2: 'Apenas deduções limitadas - revise as deduções permitidas sob s 85-10 a s 85-40.',
+      apply3: 'A reestruturação para minimização de impostos não funcionará - concentre-se em expansão empresarial legítima para potencialmente atender aos testes de PSB em anos futuros.'
     },
     references: [
-      'ITAA 1997 Parte 2-42 (Divisões 84–87) — Regras PSI',
-      'TR 2022/3 — PSI e PSB',
-      'IT 2503 — Incorporação de práticas profissionais',
-      'PCG 2021/4 — Alocação de lucros de firmas profissionais',
-      'ITAA 1936 Parte IVA — Antielisão geral'
+      'ITAA 1997 Parte 2-42 (Divisões 84-87) - Regras PSI',
+      'PCG 2025/5 - Negócios de serviços pessoais e Parte IVA (finalizado em 28 de novembro de 2025; transição até 30 de junho de 2027)',
+      'TR 2022/3 - PSI e PSB',
+      'IT 2503 - Incorporação de práticas profissionais',
+      'PCG 2021/4 - Alocação de lucros de firmas profissionais (apenas firmas profissionais)',
+      'ITAA 1936 Parte IVA - Antielisão geral'
     ]
   }
 };
@@ -547,49 +583,59 @@ var T = window.__PSI_T;
 
 var CONTACT_STEP=99;
 function getNextStep(cur){
-  var a=answers,ql=T[lang].questions.length;
+  var a=answers;
   if(cur===-1)return 0;
   if(cur===0){
+    // After Q1 income_type: if not PSI, jump to contact.
     if(a.income_type!=='yes')return CONTACT_STEP;
     return 1;
   }
   if(cur===1){
-    if(a.results_test==='yes')return 5;
+    // After Q2 results_test: pass goes straight to Q7 restructure (Results
+    // Test bypasses the 80% gate). Partial/no continues to Q3.
+    if(a.results_test==='yes')return 6;
     return 2;
   }
   if(cur===2){
-    if(a.eighty_percent==='yes')return CONTACT_STEP;
+    // After Q3 eighty_percent: yes still routes to restructure (Q7) so the
+    // PCG 2025/5 / Part IVA finding can be surfaced for the PSE; no/unsure
+    // continues to Q4.
+    if(a.eighty_percent==='yes')return 6;
     return 3;
   }
-  if(cur===3)return 4;
-  if(cur===4){
-    var passQ4=a.unrelated_clients==='yes';
-    var passQ5=a.employment_test&&a.employment_test!=='no';
-    if(passQ4||passQ5)return 5;
+  if(cur===3)return 4;                 // After Q4 unrelated_clients - always go to Q5 employment
+  if(cur===4)return 5;                 // After Q5 employment_test - always go to Q5b premises_test
+  if(cur===5){
+    // After Q5b premises_test: if any of Q4/Q5/Q5b passed, go to Q7
+    // restructure. Otherwise straight to contact (PSI rules apply).
+    var passUnrelated=a.unrelated_clients==='yes';
+    var passEmp=a.employment_test==='yes';
+    var passPrem=a.premises_test==='yes';
+    if(passUnrelated||passEmp||passPrem)return 6;
     return CONTACT_STEP;
   }
-  if(cur===5)return CONTACT_STEP;
+  if(cur===6)return CONTACT_STEP;      // After Q7 restructure
   return CONTACT_STEP;
 }
 function getPrevStep(cur){
   if(cur===CONTACT_STEP){
     var a=answers;
     if(a.income_type!=='yes')return 0;
-    if(a.results_test==='yes')return 5;
-    if(a.eighty_percent==='yes')return 2;
-    var passQ4=a.unrelated_clients==='yes';
-    var passQ5=a.employment_test&&a.employment_test!=='no';
-    if(passQ4||passQ5)return 5;
-    return 4;
+    if(a.results_test==='yes')return 6;
+    if(a.eighty_percent==='yes')return 6;
+    var passUnrelated=a.unrelated_clients==='yes';
+    var passEmp=a.employment_test==='yes';
+    var passPrem=a.premises_test==='yes';
+    if(passUnrelated||passEmp||passPrem)return 6;
+    return 5;
   }
-  if(cur===5){
+  if(cur===6){
     var a=answers;
     if(a.results_test==='yes')return 1;
-    var passQ4=a.unrelated_clients==='yes';
-    var passQ5=a.employment_test&&a.employment_test!=='no';
-    if(passQ4||passQ5)return 4;
-    return 4;
+    if(a.eighty_percent==='yes')return 2;
+    return 5;
   }
+  if(cur===5)return 4;
   if(cur===4)return 3;
   if(cur===3)return 2;
   if(cur===2)return 1;
@@ -597,18 +643,22 @@ function getPrevStep(cur){
   return -1;
 }
 function getFlowPosition(){
-  var a=answers,pos=0,s=step;
+  var a=answers,s=step;
   var flow=[0];
   if(a.income_type==='yes'){
     flow.push(1);
-    if(a.results_test==='yes'){flow.push(5);}
-    else if(a.results_test){
+    if(a.results_test==='yes'){
+      flow.push(6);
+    }else if(a.results_test){
       flow.push(2);
-      if(a.eighty_percent!=='yes'){
-        flow.push(3);flow.push(4);
-        var p4=a.unrelated_clients==='yes';
-        var p5=a.employment_test&&a.employment_test!=='no';
-        if(p4||p5)flow.push(5);
+      if(a.eighty_percent==='yes'){
+        flow.push(6);
+      }else if(a.eighty_percent){
+        flow.push(3);flow.push(4);flow.push(5);
+        var pU=a.unrelated_clients==='yes';
+        var pE=a.employment_test==='yes';
+        var pP=a.premises_test==='yes';
+        if(pU||pE||pP)flow.push(6);
       }
     }
   }
@@ -670,10 +720,10 @@ function render(){
     var q=t.questions[step];
     var fp=getFlowPosition();
     progressBar.style.width=(fp.pos/fp.total*100)+'%';
-    var topic=q.section.replace(/^.*\u2014\s*/,'');
+    var topic=q.section.replace(/^.*?\s-\s+/,'');
     var stepWord=lang==='en'?'Step':lang==='es'?'Paso':'Etapa';
     var ofWord=lang==='en'?' of ':lang==='es'?' de ':' de ';
-    var dynSection=stepWord+' '+fp.pos+ofWord+fp.total+' \u2014 '+topic;
+    var dynSection=stepWord+' '+fp.pos+ofWord+fp.total+' - '+topic;
     var html='<div class="pstep-label">'+dynSection+'</div><h2 class="pquestion">'+q.q+'</h2><div class="phelp">'+q.help+'</div><div class="popts">';
     for(var j=0;j<q.options.length;j++){
       var o=q.options[j];
@@ -899,42 +949,106 @@ function showResult(){
   var a=answers;
   var psiApplies=null,psbStatus=null,restructureRisk=null;
   var findings=[];
-  if(a.income_type==='employee'){psiApplies=false;findings.push({type:'info',text:f.employee});}
-  else if(a.income_type!=='yes'){psiApplies=false;findings.push({type:'pass',text:f.notPsi});}
+  if(a.income_type==='employee'){
+    psiApplies=false;
+    findings.push({type:'info',text:f.employee});
+  }
+  else if(a.income_type!=='yes'){
+    psiApplies=false;
+    findings.push({type:'pass',text:f.notPsi});
+  }
   else{
     psiApplies=true;
     findings.push({type:'warn',text:f.isPsi});
-    if(a.results_test==='yes'){psbStatus='pass_results';findings.push({type:'pass',text:f.passResults});}
-    else{
+    if(a.results_test==='yes'){
+      psbStatus='pass_results';
+      findings.push({type:'pass',text:f.passResults});
+    }else{
       findings.push({type:'fail',text:f.failResults});
-      if(a.eighty_percent==='yes'){psbStatus='needs_determination';findings.push({type:'fail',text:f.fail80});}
-      else{
+      // Issue 8: surface a finding when the user is partially the way to a
+      // Results Test pass - PSBD may still be available.
+      if(a.results_test==='partial'&&f.partialResults){
+        findings.push({type:'warn',text:f.partialResults});
+      }
+      if(a.eighty_percent==='yes'){
+        psbStatus='needs_determination';
+        findings.push({type:'fail',text:f.fail80});
+      }else{
         if(a.eighty_percent==='unsure'){findings.push({type:'warn',text:f.unsure80});}
         var passesUnrelated=a.unrelated_clients==='yes';
-        var passesEmpOrPrem=a.employment_test!=='no';
-        if(passesUnrelated||passesEmpOrPrem){
+        var passesEmp=a.employment_test==='yes';
+        var passesPrem=a.premises_test==='yes';
+        if(passesUnrelated||passesEmp||passesPrem){
           psbStatus='pass_other';
           if(passesUnrelated)findings.push({type:'pass',text:f.passUnrelated});
-          if(a.employment_test==='employment'||a.employment_test==='both')findings.push({type:'pass',text:f.passEmployment});
-          if(a.employment_test==='premises'||a.employment_test==='both')findings.push({type:'pass',text:f.passPremises});
+          if(passesEmp)findings.push({type:'pass',text:f.passEmployment});
+          if(passesPrem)findings.push({type:'pass',text:f.passPremises});
           findings.push({type:'pass',text:f.passOther});
-        }else{psbStatus='fail';findings.push({type:'fail',text:f.failAll});}
+        }else{
+          psbStatus='fail';
+          findings.push({type:'fail',text:f.failAll});
+        }
       }
     }
   }
-  if(psiApplies&&psbStatus!=='pass_results'&&psbStatus!=='pass_other'){restructureRisk='high';findings.push({type:'fail',text:f.restructureBlocked});}
-  else if(psiApplies&&(psbStatus==='pass_results'||psbStatus==='pass_other')){
-    if(a.restructure==='tax'){restructureRisk='high';findings.push({type:'fail',text:f.restructureTax});}
-    else if(a.restructure==='mixed'){restructureRisk='medium';findings.push({type:'warn',text:f.restructureMixed});}
-    else{restructureRisk='low';findings.push({type:'pass',text:f.restructureCommercial});}
-  }else if(!psiApplies){restructureRisk='low';findings.push({type:'pass',text:f.notPsiNote});}
+  // Restructure risk
+  if(psiApplies&&psbStatus!=='pass_results'&&psbStatus!=='pass_other'){
+    restructureRisk='high';
+    findings.push({type:'fail',text:f.restructureBlocked});
+  }else if(psiApplies&&(psbStatus==='pass_results'||psbStatus==='pass_other')){
+    if(a.restructure==='tax'){
+      restructureRisk='high';
+      findings.push({type:'fail',text:f.restructureTax});
+    }else if(a.restructure==='mixed'){
+      restructureRisk='medium';
+      findings.push({type:'warn',text:f.restructureMixed});
+    }else if(a.restructure==='commercial'){
+      // Issue 5: PCG 2025/5 - commercial purpose alone is no longer green by
+      // default. Default the verdict to compliantAmber and ask the user to
+      // verify the three low-risk indicators.
+      restructureRisk='medium';
+      findings.push({type:'warn',text:f.restructureCommercial});
+    }else{
+      // Restructure question skipped (e.g. needs_determination flow before
+      // the Q6 reroute landed). Treat as medium pending verification.
+      restructureRisk='medium';
+    }
+  }else if(!psiApplies&&a.income_type!=='employee'){
+    // Issue 12: do not double-stack employee + notPsiNote findings.
+    restructureRisk='low';
+    findings.push({type:'pass',text:f.notPsiNote});
+  }else{
+    restructureRisk='low';
+  }
+  // Verdict mapping
   var verdictClass,verdict;
-  if(!psiApplies||psbStatus==='pass_results'||psbStatus==='pass_other'){
+  if(!psiApplies){
+    // Issue 7: branch-specific compliantGreen text
+    verdictClass='green';
+    if(a.income_type==='employee'&&t.verdicts.compliantGreenEmployee){
+      verdict=t.verdicts.compliantGreenEmployee;
+    }else if(t.verdicts.compliantGreenNotPsi){
+      verdict=t.verdicts.compliantGreenNotPsi;
+    }else{
+      verdict=t.verdicts.compliantGreen;
+    }
+  }else if(psbStatus==='pass_results'||psbStatus==='pass_other'){
     if(restructureRisk==='low'){verdictClass='green';verdict=t.verdicts.compliantGreen;}
     else if(restructureRisk==='medium'){verdictClass='amber';verdict=t.verdicts.compliantAmber;}
     else{verdictClass='red';verdict=t.verdicts.partIvaRed;}
-  }else if(psbStatus==='needs_determination'){verdictClass='amber';verdict=t.verdicts.determinationAmber;}
-  else{verdictClass='red';verdict=t.verdicts.psiAppliesRed;}
+  }else if(psbStatus==='needs_determination'){
+    verdictClass='amber';
+    verdict=t.verdicts.determinationAmber;
+  }else{
+    verdictClass='red';
+    verdict=t.verdicts.psiAppliesRed;
+  }
+  // Issue 2: if the user was unsure about the 80% rule, no downstream PSB
+  // result should override a determinationAmber verdict.
+  if(psiApplies&&a.eighty_percent==='unsure'&&psbStatus!=='pass_results'){
+    verdictClass='amber';
+    verdict=t.verdicts.determinationAmber;
+  }
   var html='<div class="pstep-label">'+t.assessmentFor+' '+escapeHtml(answers.fullName)+'</div><div class="pverdict '+verdictClass+'"><h3>'+verdict.title+'</h3><p>'+verdict.text+'</p></div><div id="submitStatus" style="font-size:13px;color:#5a6680;margin-bottom:18px;padding:10px 14px;background:#f0f3f9;border-radius:6px;">'+t.submittingMsg+'</div><div class="psect"><h4>'+t.findingsHeader+'</h4>';
   for(var i=0;i<findings.length;i++){
     var fi=findings[i];
@@ -994,7 +1108,7 @@ function buildAnswerSummary(){
     var q=t.questions[i];
     var av=answers[q.id];
     var label=q.section.replace(/^(Step|Paso|Etapa)\s+\d+\s+(of|de)\s+\d+\s+.+?\s/,'');
-    var chosen='—';
+    var chosen='-';
     if(av){for(var j=0;j<q.options.length;j++){if(q.options[j].v===av){chosen=q.options[j].t;break;}}}
     lines.push(label+': '+chosen);
   }
