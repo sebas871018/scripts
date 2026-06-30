@@ -1,1647 +1,966 @@
-/*!
- * Y&S Accounting — Australian Individual Tax Calculator
- * Multilingual: EN / ES / PT
- *
- * Two integration modes (auto-detected at runtime):
- *
- *  A. MOUNT-DIV MODE (preferred — no Webflow Embed needed)
- *     - Add a Div Block on the page with id="ystc-mount"
- *     - Add a hidden Webflow form with id="tax-calc-form" (27 named fields)
- *     - Load this script via jsDelivr (Site Settings ▸ Custom Code, or Page
- *       Settings ▸ Custom Code, or as an HTML embed). Script will inject the
- *       full UI (HTML + CSS) into the mount div.
- *
- *  B. INLINE EMBED MODE (legacy)
- *     - The HTML and CSS in tax-calculator.html are pasted into a Webflow
- *       Embed element. Script just binds events to the existing markup.
- *
- * Either way the hidden Webflow form receives the submission natively.
- */
+/* =============================================================================
+   Y&S Accounting - Individual Tax Return Pre-Appointment Checklist
+   taxbne.com.au  |  SGF AUSTRALIA PTY. LTD. (ABN 39 615 320 048)
+
+   Tier 3 scripted form. Multi-step wizard, trilingual (EN / ES / PT).
+   Collects which income/deduction items apply, plus the documents to bring,
+   and emails a structured (English) summary to Sebastian via a hidden
+   Webflow form (#wf-chk-form). No TFN or bank account numbers are collected.
+
+   Mount point : <div id="psi-app"> (reused from the duplicated PSI page)
+   Submit form : the duplicated PSI registered Webflow form #wf-psi-form
+                 (guarantees the submission is recorded and emailed). Checklist
+                 data is mapped into that form's existing fields below.
+
+   GOLDEN RULES honoured: no <script> injection, no jsPDF, no em-dashes,
+   single event binding per element, function declarations before use,
+   global handlers attached once, every emailed value escaped.
+   ========================================================================== */
 (function () {
   'use strict';
 
-  /* ============================ I18N ============================ */
+  /* ---- helpers ------------------------------------------------------------ */
+  function L(en, es, pt) { return { en: en, es: es, pt: pt }; }
 
+  var state = { step: 0, lang: 'en', answers: {}, touched: {}, submitted: false };
+
+  function tr(obj) {
+    if (!obj) return '';
+    return obj[state.lang] || obj.en || '';
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ---- UI chrome strings (per language) ----------------------------------- */
   var T = {
     en: {
-      title:       'Australian individual tax calculator',
-      subtitle:    'Fast estimate for 2025–26, 2024–25 and 2023–24. Select your occupation from the searchable list — deduction categories for your role will appear below. Add your income, deductions and tax already paid for a live tax position.',
-      sec_details: 'Your details',  sec_income: 'Income',  sec_deductions: 'Deductions',
-      sec_other:   'Other factors', sec_paid:   'Tax already paid',
-      sec_results: 'Your estimated position', sub_results: 'Updates live as you type.',
-      f_year: 'Income year', f_residency: 'Residency for tax', f_occupation: 'Occupation',
-      f_wages: 'Salary & wages', f_interest: 'Interest income',
-      f_business: 'Net business income', f_rental: 'Net rental income',
-      f_total_income: 'Total income', f_total_deds: 'Total deductions',
-      f_paygw: 'PAYG tax withheld from wages', f_instalments: 'PAYG instalments paid',
-      f_total_paid: 'Total tax already paid',
-      f_name: 'Your name', f_email: 'Your email',
-      chk_help: 'I have a HELP / HECS debt',
-      chk_medex: 'Medicare levy exemption applies',
-      chk_phi: 'Private hospital cover for full year',
-      h_deductions: 'Enter amounts that apply. Tap each ? for ATO guidance. Extra items may apply — we review everything when we prepare your return.',
-      h_paid: 'Amounts already paid to the ATO during the year reduce your final balance — and may result in a refund.',
-      h_cta: 'Email me this estimate — we’ll follow up with a link to our tax services.',
-      ph_search: 'Type to search (e.g. nurse, tradie, IT)…',
-      ph_combo_empty: 'No matching occupations — try a different term',
-      res_resident: 'Australian resident', res_nonResident: 'Foreign resident', res_whm: 'Working Holiday Maker',
-      r_income: 'Total income', r_deds: 'Less: deductions', r_ti: 'Taxable income',
-      r_tax: 'Income tax', r_lito: 'Low income tax offset (LITO)',
-      r_ml: 'Medicare levy', r_mls: 'Medicare levy surcharge', r_help: 'HELP / HECS repayment',
-      r_total: 'Total tax payable', r_paid: 'Less: PAYG withheld & instalments',
-      r_refund: 'Estimated refund', r_owing: 'Estimated amount owing',
-      r_net: 'Net take-home', r_eff: 'Effective tax rate',
-      r_breakdown: 'Tax breakdown',
-      btn_primary: 'Send estimate & start a tax return →',
-      btn_secondary: 'Just email me the estimate',
-      msg_no_name: 'Please enter your name.',
-      msg_no_email: 'Please enter a valid email address.',
-      msg_sending: 'Sending…',
-      msg_sent: 'Sent! Check your inbox — we’ll be in touch shortly with your estimate and a link to our tax services.',
-      msg_fail: 'Couldn’t send right now. Please try again or email info@taxbne.com.au.',
-      msg_no_form: 'Form not found. Please contact info@taxbne.com.au.',
-      msg_turnstile: 'Please complete the verification check above before sending.',
-      tip_year: 'The Australian financial year runs 1 July – 30 June. Select the year you are estimating for.',
-      tip_residency: 'Australian residents are taxed on worldwide income at resident rates. Foreign residents pay non-resident rates with no tax-free threshold. Working Holiday Makers (417/462 visa) have a special rate scale.',
-      tip_occupation: 'Type to search ATO occupation categories. We surface deduction items commonly claimed in your role — eligibility always depends on your specific circumstances.',
-      tip_wages: 'Gross salary and wages from employers before PAYG tax withheld. Found at the top of your Income Statement / PAYG Payment Summary.',
-      tip_interest: 'Total interest received from Australian banks, credit unions and term deposits during the year.',
-      tip_business: 'Net profit from a sole-trader or partnership business (gross income less business expenses). Use a positive number for profit, or enter 0 if you made a loss.',
-      tip_rental: 'Rental receipts less deductible rental expenses (interest, rates, repairs, depreciation, agent fees). Enter 0 if negatively geared — tax losses require advice.',
-      tip_paygw: 'Total tax withheld by your employer(s) across the year, shown on your PAYG Income Statement. Include any PAYG withheld from termination or lump-sum payments.',
-      tip_instalments: 'Quarterly PAYG instalments paid to the ATO for business or investment income. Visible on your activity statements or in ATO Online under "Tax » Activity statements".',
-      tip_help: 'Covers HELP, HECS, VSL, SFSS and AASL (formerly TSL) study loans. Compulsory repayments apply once your repayment income exceeds the ATO threshold.',
-      tip_medex: 'Full exemption applies to specific categories: prescribed foreign residents, some veterans and certain visa holders. Most taxpayers are not exempt.',
-      tip_phi: 'Holding complying private hospital cover (not just extras) for the whole year exempts you from the Medicare Levy Surcharge.',
-      disclaimer: 'Estimate only. Assumes a single Australian taxpayer with no dependants based on the figures entered and ATO rates at publication. It is general information and not tax advice. It does not account for capital gains, franking credits, trust distributions, Division 293, super contribution caps, offsets beyond LITO, or the full Medicare levy reduction rules. For a precise calculation specific to your circumstances, contact Y&S Accounting.'
+      brand: 'Y&S Accounting',
+      title: 'Individual Tax Return Checklist',
+      subtitle: 'For the 2025-26 financial year (1 July 2025 to 30 June 2026)',
+      intro: 'Thank you for booking your appointment. Please complete this checklist so we can prepare your individual tax return before we meet. It takes about 5 minutes. Tick everything that applies to you, even if you are unsure, and we will confirm the details together.',
+      idReminder: 'This is step 2. If you have not completed step 1 (the ID verification form), please [LINK]complete it here[/LINK] first.',
+      bookEmailLabel: 'Email used to book your appointment',
+      bookEmailHelp: 'Enter the same email you used when booking, so we can match this checklist to your appointment.',
+      occSearch: 'Start typing to search (e.g. nurse, builder, IT)',
+      occEmpty: 'No matching occupations',
+      langLabel: 'Choose your language',
+      start: 'Start checklist',
+      back: 'Back',
+      next: 'Next',
+      review: 'Review',
+      submit: 'Submit checklist',
+      stepOf: 'Step {a} of {b}',
+      required: 'This field is required',
+      errName: 'Please enter your full name',
+      errEmail: 'Please enter a valid email address',
+      errPhone: 'Please enter a valid phone number',
+      yes: 'Yes', no: 'No', notsure: 'Not sure',
+      reviewTitle: 'Review and submit',
+      reviewIntro: 'Please check your answers below, then submit. We will receive your checklist and prepare for your appointment.',
+      thanksTitle: 'Thank you',
+      thanksText: 'Your checklist has been sent to Y&S Accounting. We will review it before your appointment. If anything changes, just let us know.',
+      sending: 'Sending...',
+      none: 'None selected',
+      optional: 'optional'
     },
     es: {
-      title:       'Calculadora de impuestos para personas físicas en Australia',
-      subtitle:    'Estimación rápida para 2025–26, 2024–25 y 2023–24. Elige tu ocupación de la lista — las deducciones más comunes de tu profesión aparecerán abajo. Añade tus ingresos, deducciones e impuestos ya pagados para ver tu posición fiscal en tiempo real.',
-      sec_details: 'Tus datos',     sec_income: 'Ingresos', sec_deductions: 'Deducciones',
-      sec_other:   'Otros factores', sec_paid:   'Impuestos ya pagados',
-      sec_results: 'Tu posición estimada', sub_results: 'Se actualiza en tiempo real.',
-      f_year: 'Año fiscal', f_residency: 'Residencia fiscal', f_occupation: 'Ocupación',
-      f_wages: 'Salario y sueldos', f_interest: 'Intereses',
-      f_business: 'Ingresos netos por actividad', f_rental: 'Ingresos netos por alquiler',
-      f_total_income: 'Ingresos totales', f_total_deds: 'Deducciones totales',
-      f_paygw: 'Impuesto PAYG retenido del salario', f_instalments: 'Cuotas PAYG pagadas',
-      f_total_paid: 'Total impuestos ya pagados',
-      f_name: 'Tu nombre', f_email: 'Tu correo electrónico',
-      chk_help: 'Tengo deuda HELP / HECS',
-      chk_medex: 'Aplica exención del tributo Medicare',
-      chk_phi: 'Cobertura hospitalaria privada todo el año',
-      h_deductions: 'Ingresa los importes que apliquen. Toca cada ? para ver la guía de la ATO. Pueden aplicar más conceptos — los revisamos al preparar tu declaración.',
-      h_paid: 'Los importes pagados a la ATO durante el año reducen tu saldo final — y pueden generar un reembolso.',
-      h_cta: 'Envíame esta estimación — te enviaremos un enlace a nuestros servicios fiscales.',
-      ph_search: 'Escribe para buscar (p. ej. enfermera, oficio, TI)…',
-      ph_combo_empty: 'No hay ocupaciones coincidentes — prueba otro término',
-      res_resident: 'Residente fiscal australiano', res_nonResident: 'Residente extranjero', res_whm: 'Visa Working Holiday',
-      r_income: 'Ingresos totales', r_deds: 'Menos: deducciones', r_ti: 'Renta gravable',
-      r_tax: 'Impuesto sobre la renta', r_lito: 'Bonificación por bajos ingresos (LITO)',
-      r_ml: 'Tributo Medicare', r_mls: 'Recargo Medicare (MLS)', r_help: 'Pago HELP / HECS',
-      r_total: 'Total impuesto a pagar', r_paid: 'Menos: PAYG retenido y cuotas',
-      r_refund: 'Reembolso estimado', r_owing: 'Saldo a pagar estimado',
-      r_net: 'Ingresos netos', r_eff: 'Tasa efectiva de impuestos',
-      r_breakdown: 'Desglose del impuesto',
-      btn_primary: 'Enviar estimación e iniciar declaración →',
-      btn_secondary: 'Solo enviarme la estimación por correo',
-      msg_no_name: 'Por favor, ingresa tu nombre.',
-      msg_no_email: 'Por favor, ingresa un correo electrónico válido.',
-      msg_sending: 'Enviando…',
-      msg_sent: '¡Enviado! Revisa tu bandeja de entrada — te contactaremos pronto con tu estimación y un enlace a nuestros servicios fiscales.',
-      msg_fail: 'No se pudo enviar ahora. Inténtalo de nuevo o escribe a info@taxbne.com.au.',
-      msg_no_form: 'No se encontró el formulario. Escríbenos a info@taxbne.com.au.',
-      msg_turnstile: 'Por favor, completa la verificación de arriba antes de enviar.',
-      tip_year: 'El año fiscal australiano va del 1 de julio al 30 de junio. Selecciona el año que quieres estimar.',
-      tip_residency: 'Los residentes fiscales australianos tributan sobre ingresos mundiales a tasas de residente. Los residentes extranjeros pagan tasas de no residente sin franja libre. Los titulares de visa Working Holiday (417/462) tienen una escala especial.',
-      tip_occupation: 'Escribe para buscar entre las categorías de ocupación de la ATO. Mostramos los conceptos de deducción más comunes en tu rol — la elegibilidad siempre depende de tus circunstancias.',
-      tip_wages: 'Salario bruto antes de la retención PAYG. Aparece al inicio de tu Income Statement / PAYG Payment Summary.',
-      tip_interest: 'Total de intereses recibidos de bancos, cooperativas y depósitos a plazo en Australia durante el año.',
-      tip_business: 'Beneficio neto como autónomo o sociedad (ingresos menos gastos del negocio). Usa un valor positivo si hay beneficio, o 0 si tuviste pérdidas.',
-      tip_rental: 'Ingresos por alquiler menos gastos deducibles (intereses, impuestos municipales, reparaciones, depreciación, comisiones). Ingresa 0 si está negativamente apalancado — las pérdidas requieren asesoría.',
-      tip_paygw: 'Total del impuesto retenido por tu(s) empleador(es) durante el año, indicado en tu PAYG Income Statement. Incluye PAYG retenido en pagos por terminación o sumas globales.',
-      tip_instalments: 'Cuotas trimestrales PAYG pagadas a la ATO por ingresos de negocios o inversiones. Visibles en tus activity statements o en ATO Online en "Tax » Activity statements".',
-      tip_help: 'Incluye préstamos HELP, HECS, VSL, SFSS y AASL (antes TSL). Los pagos obligatorios aplican cuando tus ingresos de pago superan el umbral de la ATO.',
-      tip_medex: 'La exención total aplica a categorías específicas: ciertos residentes extranjeros prescritos, algunos veteranos y titulares de visados específicos. La mayoría de los contribuyentes no están exentos.',
-      tip_phi: 'Tener cobertura hospitalaria privada que cumpla los requisitos (no solo extras) durante todo el año te exime del Medicare Levy Surcharge.',
-      disclaimer: 'Solo estimación. Asume un contribuyente australiano soltero sin dependientes basado en las cifras ingresadas y las tasas vigentes de la ATO. Es información general y no constituye asesoría fiscal. No considera ganancias de capital, créditos de imputación (franking), distribuciones de fideicomisos, División 293, topes de aportes a superannuation, bonificaciones más allá de LITO, ni las reglas completas de reducción del tributo Medicare. Para un cálculo preciso según tus circunstancias, contacta a Y&S Accounting.'
+      brand: 'Y&S Accounting',
+      title: 'Lista de verificacion para tu declaracion de impuestos',
+      subtitle: 'Para el ano fiscal 2025-26 (1 de julio de 2025 al 30 de junio de 2026)',
+      intro: 'Gracias por reservar tu cita. Completa esta lista para que podamos preparar tu declaracion de impuestos antes de reunirnos. Toma unos 5 minutos. Marca todo lo que se aplique a tu caso, aunque no estes seguro, y confirmaremos los detalles juntos.',
+      idReminder: 'Este es el paso 2. Si aun no completaste el paso 1 (el formulario de verificacion de identidad), por favor [LINK]completalo aqui[/LINK] primero.',
+      bookEmailLabel: 'Correo que usaste para reservar tu cita',
+      bookEmailHelp: 'Ingresa el mismo correo que usaste al reservar, para vincular esta lista con tu cita.',
+      occSearch: 'Escribe para buscar (p. ej. enfermera, constructor, TI)',
+      occEmpty: 'No hay ocupaciones coincidentes',
+      langLabel: 'Elige tu idioma',
+      start: 'Comenzar',
+      back: 'Atras',
+      next: 'Siguiente',
+      review: 'Revisar',
+      submit: 'Enviar lista',
+      stepOf: 'Paso {a} de {b}',
+      required: 'Este campo es obligatorio',
+      errName: 'Por favor ingresa tu nombre completo',
+      errEmail: 'Por favor ingresa un correo electronico valido',
+      errPhone: 'Por favor ingresa un numero de telefono valido',
+      yes: 'Si', no: 'No', notsure: 'No estoy seguro',
+      reviewTitle: 'Revisar y enviar',
+      reviewIntro: 'Revisa tus respuestas abajo y luego envia. Recibiremos tu lista y prepararemos tu cita.',
+      thanksTitle: 'Gracias',
+      thanksText: 'Tu lista fue enviada a Y&S Accounting. La revisaremos antes de tu cita. Si algo cambia, avisanos.',
+      sending: 'Enviando...',
+      none: 'Nada seleccionado',
+      optional: 'opcional'
     },
     pt: {
-      title:       'Calculadora de imposto de renda para pessoas físicas na Austrália',
-      subtitle:    'Estimativa rápida para 2025–26, 2024–25 e 2023–24. Selecione sua ocupação na lista — as deduções mais comuns da sua profissão aparecerão abaixo. Adicione sua renda, deduções e impostos já pagos para ver sua posição fiscal em tempo real.',
-      sec_details: 'Seus dados', sec_income: 'Rendimentos', sec_deductions: 'Deduções',
-      sec_other:   'Outros fatores', sec_paid: 'Imposto já pago',
-      sec_results: 'Sua posição estimada', sub_results: 'Atualiza em tempo real.',
-      f_year: 'Ano fiscal', f_residency: 'Residência fiscal', f_occupation: 'Ocupação',
-      f_wages: 'Salário e ordenados', f_interest: 'Juros recebidos',
-      f_business: 'Renda líquida de negócios', f_rental: 'Renda líquida de aluguel',
-      f_total_income: 'Renda total', f_total_deds: 'Deduções totais',
-      f_paygw: 'PAYG retido do salário', f_instalments: 'Parcelas PAYG pagas',
-      f_total_paid: 'Total imposto já pago',
-      f_name: 'Seu nome', f_email: 'Seu email',
-      chk_help: 'Tenho dívida HELP / HECS',
-      chk_medex: 'Aplica isenção da contribuição Medicare',
-      chk_phi: 'Plano de saúde hospitalar privado o ano todo',
-      h_deductions: 'Informe os valores que se aplicam. Toque em cada ? para ver as orientações da ATO. Outros itens podem se aplicar — analisamos tudo ao preparar sua declaração.',
-      h_paid: 'Os valores pagos à ATO durante o ano reduzem seu saldo final — e podem gerar uma restituição.',
-      h_cta: 'Envie-me esta estimativa — entraremos em contato com o link para nossos serviços fiscais.',
-      ph_search: 'Digite para pesquisar (ex. enfermeira, técnico, TI)…',
-      ph_combo_empty: 'Nenhuma ocupação encontrada — tente outro termo',
-      res_resident: 'Residente fiscal australiano', res_nonResident: 'Residente estrangeiro', res_whm: 'Visto Working Holiday',
-      r_income: 'Renda total', r_deds: 'Menos: deduções', r_ti: 'Renda tributável',
-      r_tax: 'Imposto sobre a renda', r_lito: 'Crédito para baixa renda (LITO)',
-      r_ml: 'Contribuição Medicare', r_mls: 'Sobretaxa Medicare (MLS)', r_help: 'Pagamento HELP / HECS',
-      r_total: 'Total imposto a pagar', r_paid: 'Menos: PAYG retido e parcelas',
-      r_refund: 'Restituição estimada', r_owing: 'Saldo a pagar estimado',
-      r_net: 'Renda líquida', r_eff: 'Alíquota efetiva',
-      r_breakdown: 'Detalhamento do imposto',
-      btn_primary: 'Enviar estimativa e iniciar declaração →',
-      btn_secondary: 'Só enviar a estimativa por email',
-      msg_no_name: 'Por favor, digite seu nome.',
-      msg_no_email: 'Por favor, digite um email válido.',
-      msg_sending: 'Enviando…',
-      msg_sent: 'Enviado! Verifique sua caixa de entrada — entraremos em contato em breve com sua estimativa e o link para nossos serviços fiscais.',
-      msg_fail: 'Não foi possível enviar agora. Tente novamente ou escreva para info@taxbne.com.au.',
-      msg_no_form: 'Formulário não encontrado. Escreva para info@taxbne.com.au.',
-      msg_turnstile: 'Por favor, complete a verificação acima antes de enviar.',
-      tip_year: 'O ano fiscal australiano vai de 1 de julho a 30 de junho. Selecione o ano que deseja estimar.',
-      tip_residency: 'Residentes fiscais australianos são tributados sobre rendimentos mundiais nas alíquotas de residente. Residentes estrangeiros pagam alíquotas de não residente sem faixa isenta. Titulares de visto Working Holiday (417/462) seguem uma tabela especial.',
-      tip_occupation: 'Digite para pesquisar nas categorias de ocupação da ATO. Apresentamos as deduções mais comuns na sua profissão — a elegibilidade sempre depende das suas circunstâncias.',
-      tip_wages: 'Salário bruto de empregadores antes da retenção PAYG. Aparece no topo do seu Income Statement / PAYG Payment Summary.',
-      tip_interest: 'Total de juros recebidos de bancos, cooperativas e aplicações a prazo na Austrália durante o ano.',
-      tip_business: 'Lucro líquido como autônomo ou sociedade (receitas menos despesas do negócio). Use um valor positivo para lucro, ou 0 se teve prejuízo.',
-      tip_rental: 'Receitas de aluguel menos despesas dedutíveis (juros, taxas, reparos, depreciação, comissão de imobiliária). Informe 0 se está negativamente alavancado — perdas tributárias exigem orientação.',
-      tip_paygw: 'Total de imposto retido pelo(s) seu(s) empregador(es) durante o ano, mostrado no seu PAYG Income Statement. Inclua PAYG retido em pagamentos de rescisão ou montantes únicos.',
-      tip_instalments: 'Parcelas trimestrais PAYG pagas à ATO sobre renda de negócios ou investimentos. Visíveis nos seus activity statements ou no ATO Online em "Tax » Activity statements".',
-      tip_help: 'Cobre HELP, HECS, VSL, SFSS e AASL (antigo TSL). Pagamentos compulsórios aplicam-se quando sua renda de pagamento ultrapassa o limiar da ATO.',
-      tip_medex: 'A isenção total aplica-se a categorias específicas: certos residentes estrangeiros prescritos, alguns veteranos e titulares de vistos específicos. A maioria dos contribuintes não é isenta.',
-      tip_phi: 'Manter plano de saúde hospitalar privado em conformidade (não apenas extras) durante todo o ano isenta-o da Sobretaxa Medicare (MLS).',
-      disclaimer: 'Apenas estimativa. Considera um contribuinte australiano solteiro sem dependentes com base nos valores informados e nas alíquotas vigentes da ATO. É informação geral e não constitui assessoria fiscal. Não considera ganhos de capital, créditos de franking, distribuições de trusts, Divisão 293, limites de superannuation, créditos além do LITO, nem as regras completas de redução da contribuição Medicare. Para um cálculo preciso conforme suas circunstâncias, contate a Y&S Accounting.'
+      brand: 'Y&S Accounting',
+      title: 'Lista de verificacao para sua declaracao de imposto',
+      subtitle: 'Para o ano fiscal 2025-26 (1 de julho de 2025 a 30 de junho de 2026)',
+      intro: 'Obrigado por agendar sua consulta. Preencha esta lista para que possamos preparar sua declaracao de imposto antes de nos reunirmos. Leva cerca de 5 minutos. Marque tudo o que se aplica a voce, mesmo em caso de duvida, e confirmaremos os detalhes juntos.',
+      idReminder: 'Esta e a etapa 2. Se voce ainda nao concluiu a etapa 1 (o formulario de verificacao de identidade), por favor [LINK]conclua aqui[/LINK] primeiro.',
+      bookEmailLabel: 'E-mail usado para agendar sua consulta',
+      bookEmailHelp: 'Informe o mesmo e-mail que voce usou ao agendar, para vincularmos esta lista a sua consulta.',
+      occSearch: 'Comece a digitar para buscar (ex. enfermeiro, pedreiro, TI)',
+      occEmpty: 'Nenhuma ocupacao encontrada',
+      langLabel: 'Escolha seu idioma',
+      start: 'Comecar',
+      back: 'Voltar',
+      next: 'Proximo',
+      review: 'Revisar',
+      submit: 'Enviar lista',
+      stepOf: 'Etapa {a} de {b}',
+      required: 'Este campo e obrigatorio',
+      errName: 'Por favor informe seu nome completo',
+      errEmail: 'Por favor informe um e-mail valido',
+      errPhone: 'Por favor informe um numero de telefone valido',
+      yes: 'Sim', no: 'Nao', notsure: 'Nao tenho certeza',
+      reviewTitle: 'Revisar e enviar',
+      reviewIntro: 'Confira suas respostas abaixo e envie. Receberemos sua lista e prepararemos sua consulta.',
+      thanksTitle: 'Obrigado',
+      thanksText: 'Sua lista foi enviada para a Y&S Accounting. Vamos revisar antes da sua consulta. Se algo mudar, avise-nos.',
+      sending: 'Enviando...',
+      none: 'Nada selecionado',
+      optional: 'opcional'
     }
   };
+  function ui(k) { return (T[state.lang] && T[state.lang][k]) || T.en[k]; }
 
-  var lang = (function () {
-    try {
-      var saved = localStorage.getItem('ystc-lang');
-      if (saved && T[saved]) return saved;
-    } catch (e) {}
-    var b = (navigator.language || 'en').slice(0, 2).toLowerCase();
-    return T[b] ? b : 'en';
-  })();
+  /* Builds the Step 1 (ID verification) reminder with a real link from the
+     [LINK]...[/LINK] placeholder in the translated string. */
+  function idReminderHtml() {
+    var s = ui('idReminder') || '';
+    var a = s.split('[LINK]');
+    var b = (a[1] || '').split('[/LINK]');
+    return esc(a[0] || '') +
+      '<a class="chk-link" href="https://www.taxbne.com.au/forms/client-id-verification-form" target="_blank" rel="noopener">' +
+      esc(b[0] || '') + '</a>' + esc(b[1] || '');
+  }
 
-  function t(key) { return (T[lang] && T[lang][key]) || T.en[key] || key; }
+  /* ---- Step / field definitions ------------------------------------------- */
+  /* field types: text, date, tel, email, select, textarea, checklist, yesno  */
 
-  /* ============================ TAX DATA ============================ */
-
-  var TAX_DATA = {
-    '2025-26': {
-      brackets: {
-        resident: [
-          { lower: 0, rate: 0, base: 0 }, { lower: 18200, rate: 0.16, base: 0 },
-          { lower: 45000, rate: 0.30, base: 4288 }, { lower: 135000, rate: 0.37, base: 31288 },
-          { lower: 190000, rate: 0.45, base: 51638 }
-        ],
-        nonResident: [
-          { lower: 0, rate: 0.30, base: 0 }, { lower: 135000, rate: 0.37, base: 40500 },
-          { lower: 190000, rate: 0.45, base: 60850 }
-        ],
-        whm: [
-          { lower: 0, rate: 0.15, base: 0 }, { lower: 45000, rate: 0.30, base: 6750 },
-          { lower: 135000, rate: 0.37, base: 33750 }, { lower: 190000, rate: 0.45, base: 54100 }
-        ]
-      },
-      medicareLevy: { lower: 27222, upper: 34027 },
-      mls: [{ lower: 97001, rate: 0.01 }, { lower: 113001, rate: 0.0125 }, { lower: 151001, rate: 0.015 }],
-      help: 'new'
+  var STEPS = [
+    {
+      id: 'booking',
+      title: L('Confirm your appointment', 'Confirma tu cita', 'Confirme sua consulta'),
+      idReminder: true,
+      fields: [
+        { id: 'book_name', type: 'text',
+          label: L('Full legal name', 'Nombre legal completo', 'Nome legal completo') },
+        { id: 'book_email', type: 'email',
+          label: L('Email used to book your appointment', 'Correo que usaste para reservar tu cita', 'E-mail usado para agendar sua consulta'),
+          help: L('Use the same email you booked with so we can match this checklist to your appointment.',
+                  'Usa el mismo correo con el que reservaste para vincular esta lista con tu cita.',
+                  'Use o mesmo e-mail com que agendou para vincularmos esta lista a sua consulta.') }
+      ]
     },
-    '2024-25': {
-      brackets: {
-        resident: [
-          { lower: 0, rate: 0, base: 0 }, { lower: 18200, rate: 0.16, base: 0 },
-          { lower: 45000, rate: 0.30, base: 4288 }, { lower: 135000, rate: 0.37, base: 31288 },
-          { lower: 190000, rate: 0.45, base: 51638 }
-        ],
-        nonResident: [
-          { lower: 0, rate: 0.30, base: 0 }, { lower: 135000, rate: 0.37, base: 40500 },
-          { lower: 190000, rate: 0.45, base: 60850 }
-        ],
-        whm: [
-          { lower: 0, rate: 0.15, base: 0 }, { lower: 45000, rate: 0.30, base: 6750 },
-          { lower: 135000, rate: 0.37, base: 33750 }, { lower: 190000, rate: 0.45, base: 54100 }
-        ]
-      },
-      medicareLevy: { lower: 27222, upper: 34027 },
-      mls: [{ lower: 97001, rate: 0.01 }, { lower: 113001, rate: 0.0125 }, { lower: 151001, rate: 0.015 }],
-      help: '2024-25'
+    {
+      id: 'income',
+      title: L('Income you received', 'Ingresos que recibiste', 'Rendimentos que voce recebeu'),
+      intro: L('Tick every type of income you had during the financial year.',
+               'Marca cada tipo de ingreso que tuviste durante el ano fiscal.',
+               'Marque cada tipo de rendimento que voce teve durante o ano fiscal.'),
+      fields: [
+        { id: 'inc_items', type: 'checklist',
+          label: L('Income types', 'Tipos de ingreso', 'Tipos de rendimento'),
+          options: [
+            { id: 'salary', label: L('Salary or wages (PAYG income statement)', 'Salario o sueldo (PAYG income statement)', 'Salario ou ordenado (PAYG income statement)') },
+            { id: 'govt', label: L('Government payments (Centrelink, pension, JobSeeker, parental leave)', 'Pagos del gobierno (Centrelink, pension, JobSeeker, licencia parental)', 'Pagamentos do governo (Centrelink, pensao, JobSeeker, licenca parental)') },
+            { id: 'interest', label: L('Bank interest', 'Intereses bancarios', 'Juros bancarios') },
+            { id: 'dividends', label: L('Dividends from Australian shares', 'Dividendos de acciones australianas', 'Dividendos de acoes australianas') },
+            { id: 'managed', label: L('Managed fund or ETF distributions', 'Distribuciones de fondos o ETF', 'Distribuicoes de fundos ou ETF') },
+            { id: 'trust', label: L('Trust or partnership distributions', 'Distribuciones de fideicomiso o sociedad', 'Distribuicoes de trust ou sociedade') },
+            { id: 'rental', label: L('Rental property income', 'Ingresos por alquiler de propiedad', 'Renda de imovel alugado') },
+            { id: 'cgt', label: L('Capital gains (sold shares, property, crypto or other assets)', 'Ganancias de capital (venta de acciones, propiedad, cripto u otros bienes)', 'Ganhos de capital (venda de acoes, imovel, cripto ou outros bens)') },
+            { id: 'crypto', label: L('Cryptocurrency activity', 'Actividad con criptomonedas', 'Atividade com criptomoedas') },
+            { id: 'business', label: L('Business or sole trader income (ABN)', 'Ingresos de negocio o autonomo (ABN)', 'Renda de negocio ou autonomo (ABN)') },
+            { id: 'contractor', label: L('Contractor or personal services income', 'Ingresos como contratista o servicios personales', 'Renda como prestador de servicos') },
+            { id: 'foreign', label: L('Foreign income (overseas wages, pension or investments)', 'Ingresos del extranjero (sueldos, pension o inversiones)', 'Rendimentos do exterior (salarios, pensao ou investimentos)') }
+          ] },
+        { id: 'inc_notes', type: 'textarea', opt: true,
+          label: L('Other income or notes', 'Otros ingresos o notas', 'Outros rendimentos ou observacoes') }
+      ]
     },
-    '2023-24': {
-      brackets: {
-        resident: [
-          { lower: 0, rate: 0, base: 0 }, { lower: 18200, rate: 0.19, base: 0 },
-          { lower: 45000, rate: 0.325, base: 5092 }, { lower: 120000, rate: 0.37, base: 29467 },
-          { lower: 180000, rate: 0.45, base: 51667 }
-        ],
-        nonResident: [
-          { lower: 0, rate: 0.325, base: 0 }, { lower: 120000, rate: 0.37, base: 39000 },
-          { lower: 180000, rate: 0.45, base: 61200 }
-        ],
-        whm: [
-          { lower: 0, rate: 0.15, base: 0 }, { lower: 45000, rate: 0.325, base: 6750 },
-          { lower: 120000, rate: 0.37, base: 31125 }, { lower: 180000, rate: 0.45, base: 53325 }
-        ]
-      },
-      medicareLevy: { lower: 26000, upper: 32500 },
-      mls: [{ lower: 93001, rate: 0.01 }, { lower: 108001, rate: 0.0125 }, { lower: 144001, rate: 0.015 }],
-      help: '2023-24'
+
+    {
+      id: 'personal',
+      title: L('Your details', 'Tus datos', 'Seus dados'),
+      fields: [
+        { id: 'pd_occupation', type: 'occupation', opt: true,
+          label: L('Occupation', 'Ocupacion', 'Ocupacao'),
+          help: L('Start typing to search. We will show deductions commonly claimed in your role.',
+                  'Empieza a escribir para buscar. Mostraremos las deducciones comunes de tu profesion.',
+                  'Comece a digitar para buscar. Mostraremos as deducoes comuns da sua profissao.') },
+        { id: 'pd_newclient', type: 'yesno', opt: true,
+          label: L('Are you a new client?', 'Eres cliente nuevo?', 'Voce e cliente novo?') },
+        { id: 'pd_status', type: 'select', opt: true,
+          label: L('Residency status', 'Estado de residencia', 'Status de residencia'),
+          options: [
+            { id: 'citizen', label: L('Australian citizen', 'Ciudadano australiano', 'Cidadao australiano') },
+            { id: 'pr', label: L('Permanent resident', 'Residente permanente', 'Residente permanente') },
+            { id: 'visa', label: L('On a visa', 'Con una visa', 'Com um visto') }
+          ] },
+        { id: 'pd_visa_type', type: 'text', opt: true, showIf: { field: 'pd_status', value: 'visa' },
+          label: L('Which visa do you hold?', 'Que visa tienes?', 'Qual visto voce possui?'),
+          help: L('For example: student, working holiday, skilled, partner, bridging.',
+                  'Por ejemplo: estudiante, working holiday, calificada, pareja, puente (bridging).',
+                  'Por exemplo: estudante, working holiday, qualificado, parceiro, ponte (bridging).') },
+        { id: 'pd_marital', type: 'select', opt: true,
+          label: L('Relationship status', 'Estado civil', 'Estado civil'),
+          options: [
+            { id: 'single', label: L('Single', 'Soltero', 'Solteiro') },
+            { id: 'couple', label: L('Married or de facto', 'Casado o union de hecho', 'Casado ou uniao estavel') }
+          ] },
+        { id: 'pd_spouse', type: 'text', opt: true,
+          label: L('Spouse name (if applicable)', 'Nombre del conyuge (si aplica)', 'Nome do conjuge (se aplicavel)') },
+        { id: 'pd_spouse_income', type: 'text', opt: true,
+          label: L('Spouse estimated taxable income', 'Ingreso gravable estimado del conyuge', 'Renda tributavel estimada do conjuge') },
+        { id: 'pd_dependents', type: 'select', opt: true,
+          label: L('Number of dependent children', 'Numero de hijos dependientes', 'Numero de filhos dependentes'),
+          options: [
+            { id: '0', label: L('0', '0', '0') },
+            { id: '1', label: L('1', '1', '1') },
+            { id: '2', label: L('2', '2', '2') },
+            { id: '3', label: L('3', '3', '3') },
+            { id: '4+', label: L('4 or more', '4 o mas', '4 ou mais') }
+          ] }
+      ]
+    },
+
+    {
+      id: 'deductions',
+      title: L('Deductions you may claim', 'Deducciones que podrias reclamar', 'Deducoes que voce pode reivindicar'),
+      intro: L('Based on your occupation, here are deductions you may be able to claim. Tick the ones that apply - you will need records or receipts.',
+               'Segun tu ocupacion, estas son las deducciones que podrias reclamar. Marca las que apliquen - necesitaras registros o recibos.',
+               'Com base na sua ocupacao, estas sao as deducoes que voce pode reivindicar. Marque as que se aplicam - sera preciso ter comprovantes.'),
+      fields: [
+        { id: 'ded_items', type: 'checklist', dynamic: 'occ_deductions',
+          label: L('Deductions that may apply to you', 'Deducciones que podrian aplicarte', 'Deducoes que podem se aplicar a voce') },
+        { id: 'ded_notes', type: 'textarea', opt: true,
+          label: L('Other deductions or notes', 'Otras deducciones o notas', 'Outras deducoes ou observacoes') }
+      ]
+    },
+
+    {
+      id: 'offsets',
+      title: L('Offsets and other matters', 'Compensaciones y otros asuntos', 'Abatimentos e outros assuntos'),
+      fields: [
+        { id: 'off_health', type: 'select', opt: true,
+          label: L('Private health insurance', 'Seguro de salud privado', 'Plano de saude privado'),
+          options: [
+            { id: 'yes', label: L('Yes, I have a statement', 'Si, tengo el comprobante', 'Sim, tenho o comprovante') },
+            { id: 'no', label: L('No', 'No', 'Nao') },
+            { id: 'unsure', label: L('Not sure', 'No estoy seguro', 'Nao tenho certeza') }
+          ] },
+        { id: 'off_hecs', type: 'yesno', opt: true,
+          label: L('Do you have a HECS, HELP or student loan debt?', 'Tienes deuda HECS, HELP o de prestamo estudiantil?', 'Voce tem divida HECS, HELP ou de emprestimo estudantil?') },
+        { id: 'off_medicare', type: 'yesno', opt: true,
+          label: L('Do you have a Medicare levy exemption or reduction?', 'Tienes exencion o reduccion del Medicare levy?', 'Voce tem isencao ou reducao do Medicare levy?') },
+        { id: 'off_notes', type: 'textarea', opt: true,
+          label: L('Anything else about offsets or your situation', 'Algo mas sobre compensaciones o tu situacion', 'Algo mais sobre abatimentos ou sua situacao') }
+      ]
+    },
+
+    {
+      id: 'documents',
+      title: L('Documents to bring', 'Documentos para traer', 'Documentos para trazer'),
+      intro: L('Tick the documents you already have ready. Bring the rest to your appointment.',
+               'Marca los documentos que ya tienes listos. Trae el resto a tu cita.',
+               'Marque os documentos que voce ja tem prontos. Traga o restante a sua consulta.'),
+      fields: [
+        { id: 'doc_items', type: 'checklist',
+          label: L('Documents ready', 'Documentos listos', 'Documentos prontos'),
+          options: [
+            { id: 'lastreturn', label: L('Last year tax return (new clients)', 'Declaracion del ano pasado (clientes nuevos)', 'Declaracao do ano passado (clientes novos)') },
+            { id: 'payg', label: L('PAYG income statements or payment summaries', 'PAYG income statements o payment summaries', 'PAYG income statements ou payment summaries') },
+            { id: 'interest', label: L('Bank interest summary', 'Resumen de intereses bancarios', 'Resumo de juros bancarios') },
+            { id: 'dividends', label: L('Dividend and distribution statements', 'Estados de dividendos y distribuciones', 'Extratos de dividendos e distribuicoes') },
+            { id: 'health', label: L('Private health insurance statement', 'Comprobante de seguro de salud privado', 'Comprovante de plano de saude privado') },
+            { id: 'receipts', label: L('Receipts for work-related expenses', 'Recibos de gastos relacionados con el trabajo', 'Recibos de despesas de trabalho') },
+            { id: 'logbook', label: L('Car logbook or work-from-home records', 'Bitacora del auto o registros de trabajo desde casa', 'Diario do carro ou registros de trabalho em casa') },
+            { id: 'rental', label: L('Rental property: agent summary, loan and expense records', 'Propiedad de alquiler: resumen del agente, prestamo y gastos', 'Imovel alugado: resumo do agente, emprestimo e despesas') },
+            { id: 'cgt', label: L('Capital gains: buy and sell contracts, dates and amounts', 'Ganancias de capital: contratos de compra y venta, fechas e importes', 'Ganhos de capital: contratos de compra e venda, datas e valores') },
+            { id: 'crypto', label: L('Cryptocurrency transaction report', 'Informe de transacciones de criptomonedas', 'Relatorio de transacoes de criptomoedas') }
+          ] }
+      ]
+    },
+
+    {
+      id: 'contact',
+      title: L('Anything else', 'Algo mas', 'Mais alguma coisa'),
+      intro: L('Add anything that would help us prepare. This is optional.',
+               'Agrega cualquier cosa que nos ayude a prepararnos. Esto es opcional.',
+               'Adicione qualquer coisa que nos ajude a preparar. Isto e opcional.'),
+      fields: [
+        { id: 'c_comments', type: 'textarea', opt: true,
+          label: L('Anything else we should know', 'Algo mas que debamos saber', 'Algo mais que devemos saber') }
+      ]
     }
-  };
-
-  var HELP_TABLES = {
-    '2023-24': [
-      {lower:0,rate:0},{lower:51550,rate:0.01},{lower:59519,rate:0.02},{lower:63090,rate:0.025},
-      {lower:66876,rate:0.03},{lower:70889,rate:0.035},{lower:75141,rate:0.04},{lower:79650,rate:0.045},
-      {lower:84430,rate:0.05},{lower:89495,rate:0.055},{lower:94866,rate:0.06},{lower:100558,rate:0.065},
-      {lower:106591,rate:0.07},{lower:112986,rate:0.075},{lower:119765,rate:0.08},{lower:126951,rate:0.085},
-      {lower:134569,rate:0.09},{lower:142643,rate:0.095},{lower:151201,rate:0.10}
-    ],
-    '2024-25': [
-      {lower:0,rate:0},{lower:54435,rate:0.01},{lower:62851,rate:0.02},{lower:66621,rate:0.025},
-      {lower:70619,rate:0.03},{lower:74856,rate:0.035},{lower:79347,rate:0.04},{lower:84108,rate:0.045},
-      {lower:89155,rate:0.05},{lower:94504,rate:0.055},{lower:100175,rate:0.06},{lower:106186,rate:0.065},
-      {lower:112557,rate:0.07},{lower:119310,rate:0.075},{lower:126468,rate:0.08},{lower:134057,rate:0.085},
-      {lower:142101,rate:0.09},{lower:150627,rate:0.095},{lower:159664,rate:0.10}
-    ]
-  };
-
-  /* ============================ OCCUPATIONS ============================ */
-
-  var OCCUPATIONS = [
-    { key: 'accountant', extras: ['cpd','tpb','cpa_fees','journals'],
-      label: { en: 'Accounting / finance professional', es: 'Contabilidad / finanzas', pt: 'Contabilidade / finanças' } },
-    { key: 'adult_industry', extras: ['uniform','ppe','self_education'],
-      label: { en: 'Adult industry worker', es: 'Trabajador/a de la industria adulta', pt: 'Trabalhador da indústria adulta' } },
-    { key: 'agricultural', extras: ['ppe','sunscreen','tools','uniform'],
-      label: { en: 'Agricultural / farm worker', es: 'Trabajador/a agrícola', pt: 'Trabalhador agrícola' } },
-    { key: 'apprentice', extras: ['tools','ppe','self_education'],
-      label: { en: 'Apprentice or trainee', es: 'Aprendiz o practicante', pt: 'Aprendiz ou estagiário' } },
-    { key: 'adf', extras: ['uniform','fitness','prof_dev'],
-      label: { en: 'Australian Defence Force member', es: 'Miembro de las Fuerzas de Defensa', pt: 'Membro das Forças de Defesa Australianas' } },
-    { key: 'construction', extras: ['tools','ppe','uniform','sunscreen'],
-      label: { en: 'Building / construction worker', es: 'Trabajador/a de construcción', pt: 'Trabalhador da construção civil' } },
-    { key: 'bus', extras: ['license','uniform','sunscreen'],
-      label: { en: 'Bus driver', es: 'Conductor/a de autobús', pt: 'Motorista de ônibus' } },
-    { key: 'callcentre', extras: ['prof_dev','office_supplies'],
-      label: { en: 'Call centre operator', es: 'Operador/a de call center', pt: 'Operador de call center' } },
-    { key: 'cleaner', extras: ['ppe','uniform','sunscreen'],
-      label: { en: 'Cleaner', es: 'Personal de limpieza', pt: 'Profissional de limpeza' } },
-    { key: 'community', extras: ['uniform','ppe','self_education'],
-      label: { en: 'Community / disability support worker', es: 'Trabajador/a de apoyo comunitario', pt: 'Trabalhador de apoio comunitário' } },
-    { key: 'contractor', extras: ['insurance','software','tools','laptop'],
-      label: { en: 'Contractor / sole trader', es: 'Contratista / autónomo', pt: 'Contratante / autônomo' } },
-    { key: 'medical', extras: ['ahpra','cpd','indemnity_insurance','medical_journals','equipment'],
-      label: { en: 'Doctor / medical specialist', es: 'Médico/a / especialista', pt: 'Médico/a / especialista' } },
-    { key: 'engineer', extras: ['prof_dev','software','conferences','hardware'],
-      label: { en: 'Engineer', es: 'Ingeniero/a', pt: 'Engenheiro/a' } },
-    { key: 'factory', extras: ['ppe','uniform','tools'],
-      label: { en: 'Factory / production worker', es: 'Trabajador/a de fábrica', pt: 'Trabalhador de fábrica' } },
-    { key: 'firefighter', extras: ['uniform','fitness','prof_dev'],
-      label: { en: 'Firefighter', es: 'Bombero/a', pt: 'Bombeiro/a' } },
-    { key: 'fitness_ind', extras: ['uniform','prof_dev','equipment'],
-      label: { en: 'Fitness / sporting industry employee', es: 'Industria del fitness / deportiva', pt: 'Indústria fitness / esportiva' } },
-    { key: 'flight', extras: ['uniform','self_education','prof_dev'],
-      label: { en: 'Flight attendant', es: 'Auxiliar de vuelo', pt: 'Comissário/a de bordo' } },
-    { key: 'gaming', extras: ['uniform','rsa','training'],
-      label: { en: 'Gaming attendant', es: 'Empleado/a de casino', pt: 'Atendente de cassino' } },
-    { key: 'guards', extras: ['uniform','license','prof_dev'],
-      label: { en: 'Guard / security officer', es: 'Guardia / agente de seguridad', pt: 'Vigilante / agente de segurança' } },
-    { key: 'beauty', extras: ['tools','uniform','training'],
-      label: { en: 'Hairdresser / beauty therapist', es: 'Peluquero/a / esteticista', pt: 'Cabeleireiro/a / esteticista' } },
-    { key: 'hospitality', extras: ['uniform','rsa','training'],
-      label: { en: 'Hospitality / food service worker', es: 'Hostelería / servicio de comida', pt: 'Hotelaria / serviço de alimentação' } },
-    { key: 'it', extras: ['software','hardware','conferences','prof_dev'],
-      label: { en: 'IT / technology professional', es: 'Profesional de TI / tecnología', pt: 'Profissional de TI / tecnologia' } },
-    { key: 'lawyer', extras: ['cpd','practice_cert','legal_pubs'],
-      label: { en: 'Lawyer / legal professional', es: 'Abogado/a / profesional jurídico', pt: 'Advogado/a / profissional jurídico' } },
-    { key: 'meat', extras: ['ppe','uniform','tools'],
-      label: { en: 'Meat / food processing worker', es: 'Trabajador/a procesamiento de carne / alimentos', pt: 'Trabalhador de processamento de carne / alimentos' } },
-    { key: 'media', extras: ['prof_dev','equipment'],
-      label: { en: 'Media / journalism professional', es: 'Profesional de medios / periodismo', pt: 'Profissional de mídia / jornalismo' } },
-    { key: 'mining', extras: ['ppe','uniform','sunscreen','prof_dev'],
-      label: { en: 'Mining site employee', es: 'Empleado/a de minería', pt: 'Trabalhador de mineração' } },
-    { key: 'nurse', extras: ['uniform','ahpra','cpd','stethoscope','prof_dev'],
-      label: { en: 'Nurse / midwife', es: 'Enfermero/a / matrona', pt: 'Enfermeiro/a / parteira' } },
-    { key: 'general', extras: ['office_supplies','prof_dev'],
-      label: { en: 'Office / administration worker', es: 'Oficina / administración', pt: 'Escritório / administração' } },
-    { key: 'paramedic', extras: ['uniform','ahpra','cpd','equipment'],
-      label: { en: 'Paramedic', es: 'Paramédico/a', pt: 'Paramédico/a' } },
-    { key: 'performing', extras: ['prof_dev','tools','uniform'],
-      label: { en: 'Performing artist', es: 'Artista escénico/a', pt: 'Artista cênico/a' } },
-    { key: 'pilot', extras: ['uniform','license','prof_dev'],
-      label: { en: 'Pilot', es: 'Piloto', pt: 'Piloto' } },
-    { key: 'police', extras: ['uniform','fitness','prof_dev','equipment'],
-      label: { en: 'Police officer', es: 'Agente de policía', pt: 'Policial' } },
-    { key: 'sportsperson', extras: ['prof_dev','equipment','fitness'],
-      label: { en: 'Professional sportsperson', es: 'Deportista profesional', pt: 'Atleta profissional' } },
-    { key: 'realestate', extras: ['advertising','license','prof_dev'],
-      label: { en: 'Real estate agent', es: 'Agente inmobiliario', pt: 'Corretor de imóveis' } },
-    { key: 'recruitment', extras: ['prof_dev','client_meals'],
-      label: { en: 'Recruitment consultant', es: 'Consultor/a de selección', pt: 'Consultor de recrutamento' } },
-    { key: 'retail', extras: ['uniform','training'],
-      label: { en: 'Retail worker', es: 'Empleado/a de comercio', pt: 'Trabalhador de varejo' } },
-    { key: 'sales', extras: ['client_meals','laptop','prof_dev'],
-      label: { en: 'Sales representative', es: 'Representante de ventas', pt: 'Representante de vendas' } },
-    { key: 'teacher', extras: ['teaching_materials','excursions','first_aid','prof_dev'],
-      label: { en: 'Teacher / educator', es: 'Profesor/a / educador/a', pt: 'Professor/a / educador/a' } },
-    { key: 'tradie', extras: ['tools','ppe','uniform','sunscreen'],
-      label: { en: 'Tradesperson', es: 'Oficio / trabajador especializado', pt: 'Profissional de ofício / técnico' } },
-    { key: 'train', extras: ['uniform','license','prof_dev'],
-      label: { en: 'Train driver', es: 'Maquinista de tren', pt: 'Maquinista de trem' } },
-    { key: 'travel', extras: ['prof_dev','software'],
-      label: { en: 'Travel agent', es: 'Agente de viajes', pt: 'Agente de viagens' } },
-    { key: 'truckdriver', extras: ['overnight_meals','truck_supplies','sunscreen'],
-      label: { en: 'Truck driver', es: 'Camionero/a', pt: 'Caminhoneiro/a' } },
-    { key: 'other', extras: [],
-      label: { en: 'Other occupation', es: 'Otra ocupación', pt: 'Outra ocupação' } }
   ];
 
-  var CORE_DEDUCTIONS = ['wfh','vehicle','phone','union','self_education','donations','taxagent','income_protect'];
+  /* ---- Occupation list + occupation-aware deductions (ported from tax-calculator.js) ---- */
+  var BASE_DEDUCTIONS = ['wfh','vehicle','phone','union','self_education','donations','taxagent','income_protect','investment','super'];
 
-  var DEDUCTION_CATALOG = {
-    wfh: {
-      label: { en: 'Working from home', es: 'Trabajo desde casa', pt: 'Trabalho em casa' },
-      hint:  { en: 'Electricity, internet, phone, consumables for work-use portion. Fixed rate 70c/hr (from 2024-25) or actual cost method — keep a 4-week diary.',
-               es: 'Electricidad, internet, teléfono y consumibles para la parte de uso laboral. Tarifa fija de 70c/h (desde 2024-25) o método de coste real — lleva un registro de 4 semanas.',
-               pt: 'Eletricidade, internet, telefone e consumíveis na proporção de uso para trabalho. Tarifa fixa de 70c/h (a partir de 2024-25) ou método de custo real — mantenha um diário de 4 semanas.' }
-    },
-    vehicle: {
-      label: { en: 'Work-related car / travel', es: 'Coche / viajes laborales', pt: 'Carro / viagens de trabalho' },
-      hint:  { en: 'Excludes home-to-work commuting. Cents-per-km method (up to 5,000km) or logbook method with fuel, rego, insurance, depreciation.',
-               es: 'No incluye desplazamientos casa–trabajo. Método de céntimos por km (hasta 5.000 km) o método de bitácora con combustible, matrícula, seguro y depreciación.',
-               pt: 'Não inclui deslocamento casa–trabalho. Método de centavos por km (até 5.000 km) ou método de logbook com combustível, licenciamento, seguro e depreciação.' }
-    },
-    phone: {
-      label: { en: 'Phone & internet (work %)', es: 'Teléfono e internet (% laboral)', pt: 'Telefone e internet (% trabalho)' },
-      hint:  { en: 'Work-use percentage of your mobile and home internet bills. Keep a 4-week record supporting the percentage claimed.',
-               es: 'Porcentaje de uso laboral de tus facturas de móvil e internet. Lleva un registro de 4 semanas que respalde el porcentaje declarado.',
-               pt: 'Percentual de uso para trabalho das suas contas de celular e internet. Mantenha um registro de 4 semanas que justifique o percentual declarado.' }
-    },
-    union: {
-      label: { en: 'Union & professional fees', es: 'Cuotas sindicales y profesionales', pt: 'Sindicato e taxas profissionais' },
-      hint:  { en: 'Union dues and industry body membership fees paid in your role.',
-               es: 'Cuotas sindicales y de asociaciones profesionales pagadas por tu rol.',
-               pt: 'Mensalidades sindicais e taxas de associações profissionais pagas pela sua função.' }
-    },
-    self_education: {
-      label: { en: 'Self-education', es: 'Formación profesional', pt: 'Educação profissional' },
-      hint:  { en: 'Course fees, textbooks, stationery, travel — must have a sufficient connection to your current income-earning activities.',
-               es: 'Matrícula, libros, materiales y viajes — debe haber conexión suficiente con tu actividad generadora de ingresos actual.',
-               pt: 'Matrícula, livros, materiais e viagens — deve ter conexão suficiente com sua atividade geradora de renda atual.' }
-    },
-    donations: {
-      label: { en: 'Donations (DGR charities)', es: 'Donaciones (entidades DGR)', pt: 'Doações (entidades DGR)' },
-      hint:  { en: 'Gifts of $2 or more to Deductible Gift Recipient charities. Keep receipts.',
-               es: 'Donaciones de $2 o más a entidades benéficas con estatus DGR. Conserva los recibos.',
-               pt: 'Doações de $2 ou mais a instituições com status DGR. Guarde os recibos.' }
-    },
-    taxagent: {
-      label: { en: 'Tax agent fees', es: 'Honorarios del asesor fiscal', pt: 'Honorários do contador fiscal' },
-      hint:  { en: 'Fees paid last year to a registered tax agent to prepare and lodge your return.',
-               es: 'Honorarios pagados el año pasado a un asesor fiscal registrado para preparar y presentar tu declaración.',
-               pt: 'Honorários pagos no ano passado a um contador fiscal registrado para preparar e apresentar sua declaração.' }
-    },
-    income_protect: {
-      label: { en: 'Income protection insurance', es: 'Seguro de protección de ingresos', pt: 'Seguro de proteção de renda' },
-      hint:  { en: 'Premiums for income protection held outside superannuation. Life/TPD inside super is not deductible here.',
-               es: 'Primas de protección de ingresos contratadas fuera de superannuation. Vida/TPD dentro de super no son deducibles aquí.',
-               pt: 'Prêmios de proteção de renda contratados fora do superannuation. Vida/TPD dentro do super não são dedutíveis aqui.' }
-    },
-
-    uniform: {
-      label: { en: 'Uniform / protective clothing', es: 'Uniforme / ropa de protección', pt: 'Uniforme / roupa de proteção' },
-      hint:  { en: 'Compulsory, registered or occupation-specific protective clothing (not conventional clothing). Laundry of eligible clothing deductible.',
-               es: 'Ropa de protección obligatoria, registrada o específica de la ocupación (no ropa convencional). El lavado de ropa elegible es deducible.',
-               pt: 'Roupa de proteção obrigatória, registrada ou específica da ocupação (não roupas comuns). A lavagem de roupas elegíveis é dedutível.' }
-    },
-    tools: {
-      label: { en: 'Tools & equipment', es: 'Herramientas y equipo', pt: 'Ferramentas e equipamentos' },
-      hint:  { en: 'Each item under $300 is immediately deductible; over $300 is depreciated over its effective life.',
-               es: 'Los artículos de menos de $300 son deducibles de inmediato; los de más de $300 se deprecian durante su vida útil.',
-               pt: 'Cada item abaixo de $300 é dedutível imediatamente; acima de $300 é depreciado pela sua vida útil.' }
-    },
-    ppe: {
-      label: { en: 'PPE (boots, gloves, goggles)', es: 'EPI (botas, guantes, gafas)', pt: 'EPI (botas, luvas, óculos)' },
-      hint:  { en: 'Protective personal equipment required for safe performance of your work.',
-               es: 'Equipo de protección personal necesario para realizar tu trabajo con seguridad.',
-               pt: 'Equipamento de proteção individual necessário para o desempenho seguro do seu trabalho.' }
-    },
-    sunscreen: {
-      label: { en: 'Sun protection', es: 'Protección solar', pt: 'Proteção solar' },
-      hint:  { en: 'Sunscreen, sunglasses, hats — for outdoor workers exposed to the sun.',
-               es: 'Protector solar, gafas y sombreros — para trabajadores al aire libre expuestos al sol.',
-               pt: 'Protetor solar, óculos e chapéus — para trabalhadores ao ar livre expostos ao sol.' }
-    },
-    teaching_materials: {
-      label: { en: 'Teaching materials', es: 'Material didáctico', pt: 'Material didático' },
-      hint:  { en: 'Books, stationery, supplies and resources purchased for your classes or students.',
-               es: 'Libros, materiales y recursos adquiridos para tus clases o alumnos.',
-               pt: 'Livros, materiais e recursos comprados para suas aulas ou alunos.' }
-    },
-    excursions: {
-      label: { en: 'Excursions / camps', es: 'Excursiones / campamentos', pt: 'Excursões / acampamentos' },
-      hint:  { en: 'Personal share of costs of school-authorised excursions and camps where you accompany students.',
-               es: 'Parte personal de los costes de excursiones y campamentos autorizados por la escuela en los que acompañas a alumnos.',
-               pt: 'Parcela pessoal dos custos de excursões e acampamentos autorizados pela escola em que você acompanha alunos.' }
-    },
-    first_aid: {
-      label: { en: 'First aid training', es: 'Formación en primeros auxilios', pt: 'Treinamento em primeiros socorros' },
-      hint:  { en: 'Deductible if first-aid qualifications are required by your employer.',
-               es: 'Deducible si tu empleador exige cualificaciones de primeros auxilios.',
-               pt: 'Dedutível se o seu empregador exige qualificação em primeiros socorros.' }
-    },
-    ahpra: {
-      label: { en: 'AHPRA registration', es: 'Inscripción AHPRA', pt: 'Registro AHPRA' },
-      hint:  { en: 'Annual Australian Health Practitioner Regulation Agency registration fee.',
-               es: 'Tasa anual de inscripción de la Australian Health Practitioner Regulation Agency.',
-               pt: 'Taxa anual de registro da Australian Health Practitioner Regulation Agency.' }
-    },
-    cpd: {
-      label: { en: 'CPD / professional development', es: 'CPD / desarrollo profesional', pt: 'CPD / desenvolvimento profissional' },
-      hint:  { en: 'Continuing professional development courses, workshops and registration fees required for your role.',
-               es: 'Cursos de desarrollo profesional continuo, talleres y tasas de inscripción exigidos por tu rol.',
-               pt: 'Cursos de desenvolvimento profissional contínuo, oficinas e taxas de inscrição exigidos pela sua função.' }
-    },
-    stethoscope: {
-      label: { en: 'Medical / nursing equipment', es: 'Equipo médico / de enfermería', pt: 'Equipamento médico / de enfermagem' },
-      hint:  { en: 'Stethoscope, fob watch, nursing scissors, penlight and other equipment used in your duties.',
-               es: 'Estetoscopio, reloj de bolsillo, tijeras de enfermería, linterna y otro equipo usado en tu actividad.',
-               pt: 'Estetoscópio, relógio de bolso, tesouras, lanterna e outros equipamentos usados nas suas funções.' }
-    },
-    software: {
-      label: { en: 'Software / subscriptions', es: 'Software / suscripciones', pt: 'Software / assinaturas' },
-      hint:  { en: 'Paid software, SaaS subscriptions and cloud services used for work.',
-               es: 'Software de pago, suscripciones SaaS y servicios en la nube utilizados para el trabajo.',
-               pt: 'Softwares pagos, assinaturas SaaS e serviços em nuvem utilizados para trabalho.' }
-    },
-    hardware: {
-      label: { en: 'Computer equipment', es: 'Equipo informático', pt: 'Equipamento de informática' },
-      hint:  { en: 'Work-use portion of computers, monitors and peripherals. Items over $300 are depreciated.',
-               es: 'Parte de uso laboral de ordenadores, monitores y periféricos. Los artículos de más de $300 se deprecian.',
-               pt: 'Parcela de uso para trabalho de computadores, monitores e periféricos. Itens acima de $300 são depreciados.' }
-    },
-    conferences: {
-      label: { en: 'Conferences / events', es: 'Congresos / eventos', pt: 'Congressos / eventos' },
-      hint:  { en: 'Registration, travel and accommodation for work-related events and conferences.',
-               es: 'Inscripción, viaje y alojamiento para eventos y congresos relacionados con el trabajo.',
-               pt: 'Inscrição, viagem e hospedagem para eventos e congressos relacionados ao trabalho.' }
-    },
-    prof_dev: {
-      label: { en: 'Professional development', es: 'Desarrollo profesional', pt: 'Desenvolvimento profissional' },
-      hint:  { en: 'Short courses, training and learning related to your current role.',
-               es: 'Cursos cortos, formación y aprendizaje relacionado con tu rol actual.',
-               pt: 'Cursos curtos, treinamentos e aprendizagem relacionados à sua função atual.' }
-    },
-    office_supplies: {
-      label: { en: 'Office supplies / stationery', es: 'Material de oficina / papelería', pt: 'Material de escritório / papelaria' },
-      hint:  { en: 'Pens, paper, printer ink, diaries and other stationery used for work.',
-               es: 'Bolígrafos, papel, tinta, agendas y otra papelería utilizada para el trabajo.',
-               pt: 'Canetas, papel, tinta, agendas e outros materiais usados para trabalho.' }
-    },
-    advertising: {
-      label: { en: 'Advertising & marketing', es: 'Publicidad y marketing', pt: 'Publicidade e marketing' },
-      hint:  { en: 'Self-promotion costs such as flyers, business cards and online ads (common for real estate agents and reps).',
-               es: 'Gastos de autopromoción como folletos, tarjetas y anuncios online (comunes en agentes inmobiliarios y representantes).',
-               pt: 'Custos de auto-promoção como panfletos, cartões e anúncios online (comuns em corretores e representantes).' }
-    },
-    license: {
-      label: { en: 'Licence & registration fees', es: 'Licencias y tasas de inscripción', pt: 'Licenças e taxas de registro' },
-      hint:  { en: 'Occupational licence renewal fees required to perform your role.',
-               es: 'Tasas de renovación de licencias profesionales necesarias para ejercer tu rol.',
-               pt: 'Taxas de renovação de licenças profissionais exigidas para exercer sua função.' }
-    },
-    overnight_meals: {
-      label: { en: 'Overnight travel / meals', es: 'Viajes con pernocta / comidas', pt: 'Viagens com pernoite / refeições' },
-      hint:  { en: 'Reasonable meal and incidental amounts for long-distance truck drivers per ATO TD (2024-25) rates — substantiation rules apply.',
-               es: 'Importes razonables de comida e incidentales para camioneros de larga distancia según la TD (2024-25) de la ATO — aplican reglas de comprobación.',
-               pt: 'Valores razoáveis de refeição e incidentais para caminhoneiros de longa distância conforme a TD (2024-25) da ATO — regras de comprovação aplicam-se.' }
-    },
-    truck_supplies: {
-      label: { en: 'Truck cleaning & supplies', es: 'Limpieza y suministros del camión', pt: 'Limpeza e suprimentos do caminhão' },
-      hint:  { en: 'Cleaning products, lubricants, CB radio and other truck-related consumables.',
-               es: 'Productos de limpieza, lubricantes, radio CB y otros consumibles del camión.',
-               pt: 'Produtos de limpeza, lubrificantes, rádio CB e outros consumíveis do caminhão.' }
-    },
-    rsa: {
-      label: { en: 'RSA / industry certificates', es: 'RSA / certificados sectoriales', pt: 'RSA / certificados do setor' },
-      hint:  { en: 'Responsible Service of Alcohol, RSG and other industry-required certificates.',
-               es: 'Responsible Service of Alcohol, RSG y otros certificados exigidos por el sector.',
-               pt: 'Responsible Service of Alcohol, RSG e outros certificados exigidos pelo setor.' }
-    },
-    training: {
-      label: { en: 'Role-specific training', es: 'Formación específica del puesto', pt: 'Treinamento específico da função' },
-      hint:  { en: 'Training required by your employer or industry to perform your role.',
-               es: 'Formación exigida por tu empleador o sector para desempeñar tu rol.',
-               pt: 'Treinamento exigido pelo seu empregador ou setor para desempenhar sua função.' }
-    },
-    insurance: {
-      label: { en: 'Professional indemnity', es: 'Responsabilidad civil profesional', pt: 'Responsabilidade civil profissional' },
-      hint:  { en: 'Professional indemnity / public liability insurance premiums for contractors and sole traders.',
-               es: 'Primas de seguro de responsabilidad civil profesional / pública para contratistas y autónomos.',
-               pt: 'Prêmios de seguro de responsabilidade civil profissional / pública para contratantes e autônomos.' }
-    },
-    practice_cert: {
-      label: { en: 'Practising certificate', es: 'Certificado para ejercer', pt: 'Certificado de exercício profissional' },
-      hint:  { en: 'Annual practising certificate and admission fees for legal practitioners.',
-               es: 'Certificado anual y tasas de admisión para abogados.',
-               pt: 'Certificado anual e taxas de admissão para advogados.' }
-    },
-    legal_pubs: {
-      label: { en: 'Legal publications', es: 'Publicaciones jurídicas', pt: 'Publicações jurídicas' },
-      hint:  { en: 'Subscriptions to law reports, journals and research services.',
-               es: 'Suscripciones a repertorios jurídicos, revistas y servicios de investigación.',
-               pt: 'Assinaturas de repertórios jurídicos, revistas e serviços de pesquisa.' }
-    },
-    tpb: {
-      label: { en: 'TPB registration fees', es: 'Tasas de inscripción TPB', pt: 'Taxas de registro TPB' },
-      hint:  { en: 'Tax Practitioners Board registration fees for tax agents and BAS agents.',
-               es: 'Tasas de inscripción del Tax Practitioners Board para asesores fiscales y agentes BAS.',
-               pt: 'Taxas de registro do Tax Practitioners Board para contadores fiscais e agentes BAS.' }
-    },
-    cpa_fees: {
-      label: { en: 'CPA / CA / IPA fees', es: 'Cuotas CPA / CA / IPA', pt: 'Anuidades CPA / CA / IPA' },
-      hint:  { en: 'Annual professional body membership fees (CPA Australia, CA ANZ, IPA).',
-               es: 'Cuotas anuales de las entidades profesionales (CPA Australia, CA ANZ, IPA).',
-               pt: 'Anuidades das entidades profissionais (CPA Australia, CA ANZ, IPA).' }
-    },
-    journals: {
-      label: { en: 'Industry journals', es: 'Revistas del sector', pt: 'Revistas do setor' },
-      hint:  { en: 'Subscriptions to journals and publications relevant to your role.',
-               es: 'Suscripciones a revistas y publicaciones relevantes para tu rol.',
-               pt: 'Assinaturas de revistas e publicações relevantes para sua função.' }
-    },
-    indemnity_insurance: {
-      label: { en: 'Medical indemnity insurance', es: 'Seguro de responsabilidad médica', pt: 'Seguro de responsabilidade médica' },
-      hint:  { en: 'Medical indemnity premiums (e.g. MDA, Avant). Deductible for medical practitioners.',
-               es: 'Primas de responsabilidad médica (p. ej. MDA, Avant). Deducibles para profesionales médicos.',
-               pt: 'Prêmios de responsabilidade médica (ex. MDA, Avant). Dedutível para profissionais da medicina.' }
-    },
-    medical_journals: {
-      label: { en: 'Medical journals', es: 'Revistas médicas', pt: 'Revistas médicas' },
-      hint:  { en: 'Subscriptions to medical journals, online libraries and clinical resources.',
-               es: 'Suscripciones a revistas médicas, bibliotecas online y recursos clínicos.',
-               pt: 'Assinaturas de revistas médicas, bibliotecas online e recursos clínicos.' }
-    },
-    equipment: {
-      label: { en: 'Professional equipment', es: 'Equipo profesional', pt: 'Equipamento profissional' },
-      hint:  { en: 'Equipment required for your practice (e.g. loupes, diagnostic tools, sports gear).',
-               es: 'Equipo necesario para tu práctica (p. ej. lupas, instrumentos diagnósticos, material deportivo).',
-               pt: 'Equipamento necessário para sua prática (ex. lupas, instrumentos diagnósticos, material esportivo).' }
-    },
-    laptop: {
-      label: { en: 'Laptop / work device', es: 'Portátil / dispositivo laboral', pt: 'Laptop / dispositivo de trabalho' },
-      hint:  { en: 'Work-use portion of laptop or tablet. Items over $300 are depreciated.',
-               es: 'Parte de uso laboral del portátil o tableta. Los artículos de más de $300 se deprecian.',
-               pt: 'Parcela de uso para trabalho do laptop ou tablet. Itens acima de $300 são depreciados.' }
-    },
-    client_meals: {
-      label: { en: 'Client travel & meetings', es: 'Viajes y reuniones con clientes', pt: 'Viagens e reuniões com clientes' },
-      hint:  { en: 'Work-related client travel. Meal entertainment rules are restrictive — keep records and seek advice.',
-               es: 'Viajes laborales con clientes. Las reglas de comidas/entretenimiento son restrictivas — guarda registros y consulta.',
-               pt: 'Viagens de trabalho com clientes. As regras para refeições/entretenimento são restritivas — guarde registros e consulte um profissional.' }
-    },
-    fitness: {
-      label: { en: 'Fitness / conditioning', es: 'Acondicionamiento físico', pt: 'Condicionamento físico' },
-      hint:  { en: 'Gym and fitness expenses where exceptional physical fitness is an essential, ongoing requirement of your role (ADF, police, firefighters, professional athletes). General fitness is not deductible.',
-               es: 'Gastos de gimnasio y fitness cuando la condición física excepcional sea un requisito esencial y continuo del rol (Fuerzas de Defensa, policía, bomberos, atletas profesionales). El fitness general no es deducible.',
-               pt: 'Despesas de academia e fitness quando o condicionamento físico excepcional é um requisito essencial e contínuo da função (Forças de Defesa, polícia, bombeiros, atletas profissionais). Fitness geral não é dedutível.' }
-    }
+  var DED_LABELS = {
+    wfh: L('Working from home','Trabajo desde casa','Trabalho em casa'),
+    vehicle: L('Work-related car or travel','Coche o viajes laborales','Carro ou viagens de trabalho'),
+    phone: L('Phone & internet (work portion)','Telefono e internet (parte laboral)','Telefone e internet (parte de trabalho)'),
+    union: L('Union & professional fees','Cuotas sindicales y profesionales','Sindicato e taxas profissionais'),
+    self_education: L('Self-education','Formacion profesional','Educacao profissional'),
+    donations: L('Donations (DGR charities)','Donaciones (entidades DGR)','Doacoes (entidades DGR)'),
+    taxagent: L('Tax agent fees','Honorarios del asesor fiscal','Honorarios do contador fiscal'),
+    income_protect: L('Income protection insurance','Seguro de proteccion de ingresos','Seguro de protecao de renda'),
+    investment: L('Investment expenses (loan interest, fees)','Gastos de inversion (intereses, comisiones)','Despesas de investimento (juros, taxas)'),
+    super: L('Personal super contributions','Aportes personales al super','Contribuicoes pessoais ao super'),
+    uniform: L('Uniform / protective clothing','Uniforme / ropa de proteccion','Uniforme / roupa de protecao'),
+    tools: L('Tools & equipment','Herramientas y equipo','Ferramentas e equipamentos'),
+    ppe: L('PPE (boots, gloves, goggles)','EPI (botas, guantes, gafas)','EPI (botas, luvas, oculos)'),
+    sunscreen: L('Sun protection','Proteccion solar','Protecao solar'),
+    teaching_materials: L('Teaching materials','Material didactico','Material didatico'),
+    excursions: L('Excursions / camps','Excursiones / campamentos','Excursoes / acampamentos'),
+    first_aid: L('First aid training','Formacion en primeros auxilios','Treinamento em primeiros socorros'),
+    ahpra: L('AHPRA registration','Inscripcion AHPRA','Registro AHPRA'),
+    cpd: L('CPD / professional development','CPD / desarrollo profesional','CPD / desenvolvimento profissional'),
+    stethoscope: L('Medical / nursing equipment','Equipo medico / de enfermeria','Equipamento medico / de enfermagem'),
+    software: L('Software / subscriptions','Software / suscripciones','Software / assinaturas'),
+    hardware: L('Computer equipment','Equipo informatico','Equipamento de informatica'),
+    conferences: L('Conferences / events','Congresos / eventos','Congressos / eventos'),
+    prof_dev: L('Professional development','Desarrollo profesional','Desenvolvimento profissional'),
+    office_supplies: L('Office supplies / stationery','Material de oficina / papeleria','Material de escritorio / papelaria'),
+    advertising: L('Advertising & marketing','Publicidad y marketing','Publicidade e marketing'),
+    license: L('Licence & registration fees','Licencias y tasas de inscripcion','Licencas e taxas de registro'),
+    overnight_meals: L('Overnight travel / meals','Viajes con pernocta / comidas','Viagens com pernoite / refeicoes'),
+    truck_supplies: L('Truck cleaning & supplies','Limpieza y suministros del camion','Limpeza e suprimentos do caminhao'),
+    rsa: L('RSA / industry certificates','RSA / certificados sectoriales','RSA / certificados do setor'),
+    training: L('Role-specific training','Formacion especifica del puesto','Treinamento especifico da funcao'),
+    insurance: L('Professional indemnity','Responsabilidad civil profesional','Responsabilidade civil profissional'),
+    practice_cert: L('Practising certificate','Certificado para ejercer','Certificado de exercicio profissional'),
+    legal_pubs: L('Legal publications','Publicaciones juridicas','Publicacoes juridicas'),
+    tpb: L('TPB registration fees','Tasas de inscripcion TPB','Taxas de registro TPB'),
+    cpa_fees: L('CPA / CA / IPA fees','Cuotas CPA / CA / IPA','Anuidades CPA / CA / IPA'),
+    journals: L('Industry journals','Revistas del sector','Revistas do setor'),
+    indemnity_insurance: L('Medical indemnity insurance','Seguro de responsabilidad medica','Seguro de responsabilidade medica'),
+    medical_journals: L('Medical journals','Revistas medicas','Revistas medicas'),
+    equipment: L('Professional equipment','Equipo profesional','Equipamento profissional'),
+    laptop: L('Laptop / work device','Portatil / dispositivo laboral','Laptop / dispositivo de trabalho'),
+    client_meals: L('Client travel & meetings','Viajes y reuniones con clientes','Viagens e reunioes com clientes'),
+    fitness: L('Fitness / conditioning','Acondicionamiento fisico','Condicionamento fisico')
   };
 
-  /* ============================ CALC ============================ */
+  var OCCUPATIONS = [
+    { key:'accountant', extras:['cpd','tpb','cpa_fees','journals'], label:L('Accounting / finance professional','Contabilidad / finanzas','Contabilidade / financas') },
+    { key:'adult_industry', extras:['uniform','ppe','self_education'], label:L('Adult industry worker','Trabajador de la industria adulta','Trabalhador da industria adulta') },
+    { key:'agricultural', extras:['ppe','sunscreen','tools','uniform'], label:L('Agricultural / farm worker','Trabajador agricola','Trabalhador agricola') },
+    { key:'apprentice', extras:['tools','ppe','self_education'], label:L('Apprentice or trainee','Aprendiz o practicante','Aprendiz ou estagiario') },
+    { key:'adf', extras:['uniform','fitness','prof_dev'], label:L('Australian Defence Force member','Miembro de las Fuerzas de Defensa','Membro das Forcas de Defesa') },
+    { key:'construction', extras:['tools','ppe','uniform','sunscreen'], label:L('Building / construction worker','Trabajador de construccion','Trabalhador da construcao civil') },
+    { key:'bus', extras:['license','uniform','sunscreen'], label:L('Bus driver','Conductor de autobus','Motorista de onibus') },
+    { key:'callcentre', extras:['prof_dev','office_supplies'], label:L('Call centre operator','Operador de call center','Operador de call center') },
+    { key:'cleaner', extras:['ppe','uniform','sunscreen'], label:L('Cleaner','Personal de limpieza','Profissional de limpeza') },
+    { key:'community', extras:['uniform','ppe','self_education'], label:L('Community / disability support worker','Trabajador de apoyo comunitario','Trabalhador de apoio comunitario') },
+    { key:'contractor', extras:['insurance','software','tools','laptop'], label:L('Contractor / sole trader','Contratista / autonomo','Contratante / autonomo') },
+    { key:'medical', extras:['ahpra','cpd','indemnity_insurance','medical_journals','equipment'], label:L('Doctor / medical specialist','Medico / especialista','Medico / especialista') },
+    { key:'engineer', extras:['prof_dev','software','conferences','hardware'], label:L('Engineer','Ingeniero','Engenheiro') },
+    { key:'factory', extras:['ppe','uniform','tools'], label:L('Factory / production worker','Trabajador de fabrica','Trabalhador de fabrica') },
+    { key:'firefighter', extras:['uniform','fitness','prof_dev'], label:L('Firefighter','Bombero','Bombeiro') },
+    { key:'fitness_ind', extras:['uniform','prof_dev','equipment'], label:L('Fitness / sporting industry employee','Industria del fitness / deportiva','Industria fitness / esportiva') },
+    { key:'flight', extras:['uniform','self_education','prof_dev'], label:L('Flight attendant','Auxiliar de vuelo','Comissario de bordo') },
+    { key:'gaming', extras:['uniform','rsa','training'], label:L('Gaming attendant','Empleado de casino','Atendente de cassino') },
+    { key:'guards', extras:['uniform','license','prof_dev'], label:L('Guard / security officer','Guardia / agente de seguridad','Vigilante / agente de seguranca') },
+    { key:'beauty', extras:['tools','uniform','training'], label:L('Hairdresser / beauty therapist','Peluquero / esteticista','Cabeleireiro / esteticista') },
+    { key:'hospitality', extras:['uniform','rsa','training'], label:L('Hospitality / food service worker','Hosteleria / servicio de comida','Hotelaria / servico de alimentacao') },
+    { key:'it', extras:['software','hardware','conferences','prof_dev'], label:L('IT / technology professional','Profesional de TI / tecnologia','Profissional de TI / tecnologia') },
+    { key:'lawyer', extras:['cpd','practice_cert','legal_pubs'], label:L('Lawyer / legal professional','Abogado / profesional juridico','Advogado / profissional juridico') },
+    { key:'meat', extras:['ppe','uniform','tools'], label:L('Meat / food processing worker','Trabajador procesamiento de carne / alimentos','Trabalhador de processamento de carne / alimentos') },
+    { key:'media', extras:['prof_dev','equipment'], label:L('Media / journalism professional','Profesional de medios / periodismo','Profissional de midia / jornalismo') },
+    { key:'mining', extras:['ppe','uniform','sunscreen','prof_dev'], label:L('Mining site employee','Empleado de mineria','Trabalhador de mineracao') },
+    { key:'nurse', extras:['uniform','ahpra','cpd','stethoscope','prof_dev'], label:L('Nurse / midwife','Enfermero / matrona','Enfermeiro / parteira') },
+    { key:'general', extras:['office_supplies','prof_dev'], label:L('Office / administration worker','Oficina / administracion','Escritorio / administracao') },
+    { key:'paramedic', extras:['uniform','ahpra','cpd','equipment'], label:L('Paramedic','Paramedico','Paramedico') },
+    { key:'performing', extras:['prof_dev','tools','uniform'], label:L('Performing artist','Artista escenico','Artista cenico') },
+    { key:'pilot', extras:['uniform','license','prof_dev'], label:L('Pilot','Piloto','Piloto') },
+    { key:'police', extras:['uniform','fitness','prof_dev','equipment'], label:L('Police officer','Agente de policia','Policial') },
+    { key:'sportsperson', extras:['prof_dev','equipment','fitness'], label:L('Professional sportsperson','Deportista profesional','Atleta profissional') },
+    { key:'realestate', extras:['advertising','license','prof_dev'], label:L('Real estate agent','Agente inmobiliario','Corretor de imoveis') },
+    { key:'recruitment', extras:['prof_dev','client_meals'], label:L('Recruitment consultant','Consultor de seleccion','Consultor de recrutamento') },
+    { key:'retail', extras:['uniform','training'], label:L('Retail worker','Empleado de comercio','Trabalhador de varejo') },
+    { key:'sales', extras:['client_meals','laptop','prof_dev'], label:L('Sales representative','Representante de ventas','Representante de vendas') },
+    { key:'teacher', extras:['teaching_materials','excursions','first_aid','prof_dev'], label:L('Teacher / educator','Profesor / educador','Professor / educador') },
+    { key:'tradie', extras:['tools','ppe','uniform','sunscreen'], label:L('Tradesperson','Oficio / trabajador especializado','Profissional de oficio / tecnico') },
+    { key:'train', extras:['uniform','license','prof_dev'], label:L('Train driver','Maquinista de tren','Maquinista de trem') },
+    { key:'travel', extras:['prof_dev','software'], label:L('Travel agent','Agente de viajes','Agente de viagens') },
+    { key:'truckdriver', extras:['overnight_meals','truck_supplies','sunscreen'], label:L('Truck driver','Camionero','Caminhoneiro') },
+    { key:'other', extras:[], label:L('Other occupation','Otra ocupacion','Outra ocupacao') }
+  ];
 
-  function calcIncomeTax(income, brackets) {
-    for (var i = brackets.length - 1; i >= 0; i--) {
-      if (income > brackets[i].lower) return brackets[i].base + (income - brackets[i].lower) * brackets[i].rate;
+  function occByKey(k){ for (var i=0;i<OCCUPATIONS.length;i++){ if (OCCUPATIONS[i].key===k) return OCCUPATIONS[i]; } return null; }
+  function occLabel(k){ var o=occByKey(k); return o ? tr(o.label) : ''; }
+  function occSorted(){ return OCCUPATIONS.slice().sort(function(a,b){ return tr(a.label).localeCompare(tr(b.label)); }); }
+  function dedOptionsForOccupation(){
+    var occ = occByKey(state.answers.pd_occupation);
+    var keys = BASE_DEDUCTIONS.concat(occ ? occ.extras : []);
+    var seen = {}, out = [];
+    keys.forEach(function(k){ if (!seen[k] && DED_LABELS[k]) { seen[k] = true; out.push({ id:k, label:DED_LABELS[k] }); } });
+    return out;
+  }
+  function fieldOptions(f){ return f.dynamic === 'occ_deductions' ? dedOptionsForOccupation() : (f.options || []); }
+
+  /* ---- validation --------------------------------------------------------- */
+  var RE_NAME = /^[a-zA-ZÀ-ɏḀ-ỿ\s\-'.]+$/;
+  var RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  var RE_PHONE = /^[\d\s\-()+]+$/;
+
+  function fieldError(field, val) {
+    val = (val || '').trim();
+    if (field.type === 'email') {
+      if (!val) return field.opt ? '' : ui('errEmail');
+      if (!RE_EMAIL.test(val)) return ui('errEmail');
+      return '';
     }
-    return 0;
-  }
-  function calcLito(income, residency) {
-    if (residency !== 'resident') return 0;
-    if (income <= 37500) return 700;
-    if (income <= 45000) return 700 - (income - 37500) * 0.05;
-    if (income <= 66667) return 325 - (income - 45000) * 0.015;
-    return 0;
-  }
-  function calcMedicareLevy(income, thresholds, exempt, residency) {
-    if (exempt || residency !== 'resident') return 0;
-    if (income <= thresholds.lower) return 0;
-    if (income <= thresholds.upper) return (income - thresholds.lower) * 0.10;
-    return income * 0.02;
-  }
-  function calcMls(income, mlsBrackets, hasPhi, exempt, residency) {
-    if (hasPhi || exempt || residency !== 'resident') return 0;
-    for (var i = mlsBrackets.length - 1; i >= 0; i--) {
-      if (income >= mlsBrackets[i].lower) return income * mlsBrackets[i].rate;
+    if (field.type === 'tel') {
+      if (val && !RE_PHONE.test(val)) return ui('errPhone');
+      if (!val && !field.opt) return ui('required');
+      return '';
     }
-    return 0;
-  }
-  function calcHelp(income, helpKey, hasHelp) {
-    if (!hasHelp) return 0;
-    if (helpKey === 'new') {
-      if (income <= 67000) return 0;
-      if (income <= 125000) return (income - 67000) * 0.15;
-      return 8700 + (income - 125000) * 0.17;
+    if (field.id === 'book_name' || field.id === 'c_name') {
+      if (val.length < 2 || !RE_NAME.test(val)) return ui('errName');
+      return '';
     }
-    var table = HELP_TABLES[helpKey];
-    for (var i = table.length - 1; i >= 0; i--) {
-      if (income >= table[i].lower) return income * table[i].rate;
+    if (!field.opt && field.type !== 'checklist' && field.type !== 'yesno' && !val) return ui('required');
+    return '';
+  }
+
+  function stepIsValid(stepIdx) {
+    var step = STEPS[stepIdx];
+    var ok = true;
+    for (var i = 0; i < step.fields.length; i++) {
+      var f = step.fields[i];
+      if (f.type === 'checklist' || f.type === 'yesno') continue;
+      if (fieldError(f, state.answers[f.id])) ok = false;
     }
-    return 0;
+    return ok;
   }
 
-  var FMTS = {
-    en: new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }),
-    es: new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }),
-    pt: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 })
-  };
-  function fmt(n) { return FMTS[lang].format(n); }
-  function fmtPct(n) { return (n * 100).toFixed(1) + '%'; }
+  /* ---- styles (injected once) -------------------------------------------- */
+  function injectStyles() {
+    if (window.__chkStyles) return;
+    window.__chkStyles = true;
+    var css = [
+      '#psi-app{--navy:#0B2A4A;--navy2:#15406b;--gold:#C9A24B;--gold2:#b8923f;--ink:#1c2733;--mut:#5b6b7a;--line:#e4e9f0;--cream:#fbf7ee;',
+      'font-family:inherit;color:var(--ink);max-width:760px;margin:0 auto;-webkit-font-smoothing:antialiased;text-align:left;}',
+      '#psi-app *{box-sizing:border-box;}',
+      '@keyframes chkFade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}',
+      '#psi-app .chk-card{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;padding:32px 32px 26px;box-shadow:0 10px 40px rgba(11,42,74,.08);overflow:hidden;animation:chkFade .35s ease;}',
+      '#psi-app .chk-card:before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--gold),#e3c376);}',
+      '#psi-app .chk-brand{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold2);font-weight:700;margin:6px 0 8px;}',
+      '#psi-app .chk-h1{font-size:27px;line-height:1.15;margin:0 0 8px;color:var(--navy);font-weight:800;letter-spacing:-.01em;}',
+      '#psi-app .chk-sub{color:var(--mut);font-size:14px;margin:0 0 16px;}',
+      '#psi-app .chk-intro{font-size:15px;line-height:1.6;color:#3a4654;margin:0 0 22px;}',
+      '#psi-app .chk-prog{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin:0 0 14px;}',
+      '#psi-app .chk-prog>span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#e0bd6e);border-radius:99px;transition:width .3s ease;}',
+      '#psi-app .chk-step-meta{font-size:11px;color:var(--gold2);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin:0 0 14px;}',
+      '#psi-app .chk-step-title{font-size:21px;color:var(--navy);font-weight:800;margin:0 0 6px;letter-spacing:-.01em;}',
+      '#psi-app .chk-step-intro{font-size:14px;color:var(--mut);margin:0 0 22px;line-height:1.5;}',
+      '#psi-app .chk-note{font-size:13px;line-height:1.5;color:#3a4654;background:var(--cream);border:1px solid #efe4c9;border-radius:10px;padding:11px 14px;margin:0 0 20px;}',
+      '#psi-app .chk-link{color:var(--gold2);font-weight:700;text-decoration:underline;}',
+      '#psi-app .chk-help{font-size:12.5px;color:var(--mut);margin:0 0 8px;line-height:1.45;}',
+      '#psi-app .chk-combo{position:relative;}',
+      '#psi-app .chk-combo-list{display:none;position:absolute;left:0;right:0;top:calc(100% - 1px);z-index:60;list-style:none;margin:0;padding:5px;background:#fff;border:1.5px solid var(--navy);border-radius:0 0 10px 10px;max-height:280px;overflow-y:auto;box-shadow:0 12px 28px rgba(11,42,74,.16);}',
+      '#psi-app .chk-combo-opt{padding:10px 12px;border-radius:7px;cursor:pointer;font-size:14.5px;color:var(--ink);}',
+      '#psi-app .chk-combo-opt:hover,#psi-app .chk-combo-opt.active{background:var(--cream);}',
+      '#psi-app .chk-combo-opt.sel{font-weight:700;color:var(--navy);}',
+      '#psi-app .chk-combo-opt mark{background:#f5e6bf;color:inherit;border-radius:2px;padding:0 1px;}',
+      '#psi-app .chk-combo-empty{padding:10px 12px;color:var(--mut);font-size:14px;}',
+      '#psi-app .chk-field{margin:0 0 18px;}',
+      '#psi-app .chk-label{display:block;font-size:14px;font-weight:600;color:var(--navy);margin:0 0 8px;}',
+      '#psi-app .chk-opt-tag{font-weight:400;color:var(--mut);font-size:12px;}',
+      '#psi-app .chk-input,#psi-app .chk-select,#psi-app .chk-textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;color:var(--ink);background:#fff;transition:border-color .15s,box-shadow .15s;}',
+      '#psi-app .chk-input::placeholder,#psi-app .chk-textarea::placeholder{color:#9aa7b4;}',
+      '#psi-app .chk-input:focus,#psi-app .chk-select:focus,#psi-app .chk-textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(11,42,74,.1);}',
+      '#psi-app .chk-textarea{min-height:90px;resize:vertical;line-height:1.5;}',
+      '#psi-app .chk-invalid{border-color:#d64545 !important;}',
+      '#psi-app .chk-err{color:#d64545;font-size:12.5px;margin:6px 0 0;display:none;}',
+      '#psi-app .chk-check{display:flex;align-items:flex-start;gap:12px;padding:13px 15px;border:1.5px solid var(--line);border-radius:11px;margin:0 0 10px;cursor:pointer;transition:all .15s;}',
+      '#psi-app .chk-check:hover{border-color:var(--gold);background:#fdfbf6;}',
+      '#psi-app .chk-check.on{border-color:var(--gold);background:var(--cream);box-shadow:0 1px 6px rgba(201,162,75,.15);}',
+      '#psi-app .chk-check input{margin-top:1px;width:19px;height:19px;accent-color:var(--gold2);flex:0 0 auto;cursor:pointer;}',
+      '#psi-app .chk-check span{font-size:14.5px;line-height:1.45;color:var(--ink);}',
+      '#psi-app .chk-check.on span{font-weight:600;color:var(--navy);}',
+      '#psi-app .chk-yn{display:flex;gap:12px;}',
+      '#psi-app .chk-yn button{flex:1;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:12px;font-size:14.5px;font-family:inherit;cursor:pointer;color:var(--ink);font-weight:600;transition:all .15s;}',
+      '#psi-app .chk-yn button:hover{border-color:var(--navy);}',
+      '#psi-app .chk-yn button.on{border-color:var(--navy);background:var(--navy);color:#fff;}',
+      '#psi-app .chk-nav{display:flex;justify-content:space-between;gap:12px;margin-top:26px;padding-top:20px;border-top:1px solid var(--line);}',
+      '#psi-app .chk-btn{border:none;border-radius:11px;padding:14px 26px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s;}',
+      '#psi-app .chk-btn-primary{background:var(--navy);color:#fff;box-shadow:0 4px 14px rgba(11,42,74,.22);}',
+      '#psi-app .chk-btn-primary:hover{background:var(--navy2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(11,42,74,.28);}',
+      '#psi-app .chk-btn-ghost{background:#fff;color:var(--navy);border:1.5px solid var(--line);}',
+      '#psi-app .chk-btn-ghost:hover{border-color:var(--navy);background:#f7f9fb;}',
+      '#psi-app .chk-btn[disabled]{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}',
+      '#psi-app .chk-langs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:8px 0 4px;}',
+      '#psi-app .chk-lang{position:relative;border:1.5px solid var(--line);border-radius:14px;padding:22px 12px;text-align:center;cursor:pointer;font-weight:700;font-size:16px;color:var(--navy);background:#fff;transition:all .15s;}',
+      '#psi-app .chk-lang:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 6px 16px rgba(11,42,74,.1);}',
+      '#psi-app .chk-lang.on{border-color:var(--gold);border-width:2px;background:var(--cream);}',
+      '#psi-app .chk-lang.on:after{content:"\\2713";position:absolute;top:8px;right:10px;color:var(--gold2);font-weight:700;font-size:14px;}',
+      '#psi-app .chk-lang small{display:block;color:var(--mut);font-weight:400;font-size:12px;margin-top:4px;}',
+      '#psi-app .chk-review h4{color:var(--navy);font-size:14px;font-weight:700;margin:20px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--cream);}',
+      '#psi-app .chk-review h4:first-of-type{margin-top:0;}',
+      '#psi-app .chk-review-row{font-size:14px;padding:6px 0;display:flex;gap:10px;border-bottom:1px solid #f1f4f8;}',
+      '#psi-app .chk-review-row b{color:var(--mut);font-weight:600;min-width:40%;}',
+      '#psi-app .chk-review-row span{color:var(--ink);}',
+      '#psi-app .chk-thanks{text-align:center;padding:24px 6px;}',
+      '#psi-app .chk-thanks .ico{width:66px;height:66px;margin:0 auto 6px;border-radius:50%;background:var(--cream);color:var(--gold2);font-size:34px;display:flex;align-items:center;justify-content:center;}',
+      '#psi-app .chk-thanks h2{color:var(--navy);margin:10px 0;font-size:23px;}',
+      '#psi-app .chk-priv{font-size:12px;color:var(--mut);margin:16px 0 0;line-height:1.5;text-align:center;}',
+      '@media(max-width:560px){#psi-app .chk-card{padding:22px 18px;}#psi-app .chk-langs{grid-template-columns:1fr;}#psi-app .chk-h1{font-size:22px;}#psi-app .chk-step-title{font-size:19px;}}'
+    ].join('');
+    var s = document.createElement('style');
+    s.textContent = css;
+    document.head.appendChild(s);
+  }
 
-  var $ = function (id) { return document.getElementById(id); };
+  /* ---- rendering ---------------------------------------------------------- */
+  var root;
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, function (c) {
-      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c];
+  function render() {
+    if (state.step === -1) { renderLang(); return; }
+    if (state.submitted) { renderThanks(); return; }
+    if (state.step >= STEPS.length) { renderReview(); return; }
+    renderStep(STEPS[state.step]);
+  }
+
+  function renderLang() {
+    var langs = [
+      { c: 'en', n: 'English', s: 'English' },
+      { c: 'es', n: 'Espanol', s: 'Spanish' },
+      { c: 'pt', n: 'Portugues', s: 'Portuguese' }
+    ];
+    var html = '<div class="chk-card">' +
+      '<p class="chk-brand">' + esc(ui('brand')) + '</p>' +
+      '<h1 class="chk-h1">' + esc(ui('title')) + '</h1>' +
+      '<p class="chk-sub">' + esc(ui('subtitle')) + '</p>' +
+      '<p class="chk-intro">' + esc(ui('intro')) + '</p>' +
+      '<p class="chk-label">' + esc(ui('langLabel')) + '</p><div class="chk-langs">';
+    langs.forEach(function (l) {
+      html += '<div class="chk-lang' + (state.lang === l.c ? ' on' : '') + '" data-lang="' + l.c + '">' +
+        esc(l.n) + '<small>' + esc(l.s) + '</small></div>';
     });
-  }
+    html += '</div><div class="chk-nav" style="justify-content:flex-end;">' +
+      '<button class="chk-btn chk-btn-primary" id="chk-start">' + esc(ui('start')) + '</button></div></div>';
+    root.innerHTML = html;
 
-  /* ============================ COMBOBOX ============================ */
-
-  var combo = { selected: 'general', active: -1, filtered: [], query: '' };
-
-  function sortedOccupations() {
-    return OCCUPATIONS.slice().sort(function (a, b) {
-      return a.label[lang].localeCompare(b.label[lang]);
-    });
-  }
-  function comboLabel() {
-    var o = OCCUPATIONS.find(function (x) { return x.key === combo.selected; });
-    return o ? o.label[lang] : '';
-  }
-  function comboFilter(q) {
-    q = (q || '').trim().toLowerCase();
-    combo.query = q;
-    var all = sortedOccupations();
-    if (!q) return all;
-    return all.filter(function (o) { return o.label[lang].toLowerCase().indexOf(q) !== -1; });
-  }
-  function highlight(label, q) {
-    if (!q) return escapeHtml(label);
-    var lower = label.toLowerCase();
-    var idx = lower.indexOf(q);
-    if (idx < 0) return escapeHtml(label);
-    return escapeHtml(label.slice(0, idx)) +
-           '<mark>' + escapeHtml(label.slice(idx, idx + q.length)) + '</mark>' +
-           escapeHtml(label.slice(idx + q.length));
-  }
-  function comboRender() {
-    var list = $('ystc-occ-list');
-    if (!combo.filtered.length) {
-      list.innerHTML = '<li class="ystc-combo-empty">' + escapeHtml(t('ph_combo_empty')) + '</li>';
-      return;
+    var cards = root.querySelectorAll('.chk-lang');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].onclick = function () { state.lang = this.getAttribute('data-lang'); renderLang(); };
     }
-    list.innerHTML = combo.filtered.map(function (o, i) {
-      var cls = 'ystc-combo-opt';
-      if (o.key === combo.selected) cls += ' selected';
-      if (i === combo.active)       cls += ' active';
-      return '<li class="' + cls + '" role="option" data-key="' + o.key + '">' +
-             highlight(o.label[lang], combo.query) + '</li>';
-    }).join('');
-  }
-  function comboOpen() {
-    $('ystc-combo').classList.add('open');
-    $('ystc-occ-list').classList.add('open');
-    $('ystc-occupation').setAttribute('aria-expanded', 'true');
-    comboRender();
-  }
-  function comboClose() {
-    $('ystc-combo').classList.remove('open');
-    $('ystc-occ-list').classList.remove('open');
-    $('ystc-occupation').setAttribute('aria-expanded', 'false');
-    combo.active = -1;
-  }
-  function comboSelect(key) {
-    var occ = OCCUPATIONS.find(function (o) { return o.key === key; });
-    if (!occ) return;
-    combo.selected = key;
-    $('ystc-occupation').value = occ.label[lang];
-    comboClose();
-    renderDeductions();
-    calculate();
-  }
-  function scrollActiveIntoView() {
-    var list = $('ystc-occ-list');
-    var active = list.querySelector('.ystc-combo-opt.active');
-    if (!active) return;
-    var lr = list.getBoundingClientRect(), ar = active.getBoundingClientRect();
-    if (ar.bottom > lr.bottom)      list.scrollTop += ar.bottom - lr.bottom;
-    else if (ar.top < lr.top)       list.scrollTop -= lr.top - ar.top;
-  }
-  function setupCombo() {
-    var input = $('ystc-occupation');
-    var list  = $('ystc-occ-list');
-    input.value = comboLabel();
-
-    input.addEventListener('focus', function () {
-      combo.filtered = comboFilter('');
-      combo.active = -1;
-      comboOpen();
-      this.select();
-    });
-    input.addEventListener('input', function () {
-      combo.filtered = comboFilter(this.value);
-      combo.active = combo.filtered.length ? 0 : -1;
-      comboOpen();
-    });
-    input.addEventListener('keydown', function (e) {
-      var n = combo.filtered.length;
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        combo.active = combo.active < 0 ? 0 : Math.min(combo.active + 1, n - 1);
-        comboRender(); scrollActiveIntoView();
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        combo.active = Math.max(combo.active - 1, 0);
-        comboRender(); scrollActiveIntoView();
-      } else if (e.key === 'Enter') {
-        if (combo.active >= 0 && combo.filtered[combo.active]) {
-          e.preventDefault();
-          comboSelect(combo.filtered[combo.active].key);
-        }
-      } else if (e.key === 'Escape') {
-        input.value = comboLabel();
-        comboClose();
-        input.blur();
-      }
-    });
-    list.addEventListener('mousedown', function (e) {
-      var opt = e.target.closest('.ystc-combo-opt');
-      if (!opt) return;
-      e.preventDefault();
-      comboSelect(opt.dataset.key);
-    });
-    input.addEventListener('blur', function () {
-      setTimeout(function () { input.value = comboLabel(); comboClose(); }, 150);
-    });
-    document.addEventListener('mousedown', function (e) {
-      if (e.target !== input && !list.contains(e.target)) comboClose();
-    });
+    root.querySelector('#chk-start').onclick = function () { state.step = 0; render(); };
   }
 
-  /* ============================ DEDUCTIONS UI ============================ */
-
-  function buildDeductionHtml(key) {
-    var d = DEDUCTION_CATALOG[key];
-    if (!d) return '';
-    return (
-      '<div class="ystc-field ystc-field-money">' +
-        '<label class="ystc-label">' +
-          escapeHtml(d.label[lang]) +
-          '<span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span>' +
-          '<span class="ystc-tip-text">' + escapeHtml(d.hint[lang]) + '</span></span>' +
-        '</label>' +
-        '<input type="number" class="ystc-input ystc-input-money ystc-ded-input" ' +
-               'data-key="' + key + '" min="0" step="1" placeholder="0" inputmode="numeric">' +
-      '</div>'
-    );
+  /* Conditional fields: a field with showIf only renders when the referenced
+     answer matches (e.g. visa type shows only when status is "On a visa"). */
+  function fieldVisible(f) {
+    if (!f.showIf) return true;
+    return state.answers[f.showIf.field] === f.showIf.value;
+  }
+  function stepHasDependent(step, fieldId) {
+    for (var i = 0; i < step.fields.length; i++) {
+      if (step.fields[i].showIf && step.fields[i].showIf.field === fieldId) return true;
+    }
+    return false;
   }
 
-  function renderDeductions() {
-    var occ = OCCUPATIONS.find(function (o) { return o.key === combo.selected; }) || {};
-    var spec = occ.extras || [];
-    var seen = {}, ordered = [];
-    CORE_DEDUCTIONS.concat(spec).forEach(function (k) {
-      if (!seen[k]) { seen[k] = true; ordered.push(k); }
-    });
+  function renderStep(step) {
+    var pct = Math.round(((state.step + 1) / (STEPS.length + 1)) * 100);
+    var html = '<div class="chk-card">' +
+      '<div class="chk-prog"><span style="width:' + pct + '%"></span></div>' +
+      '<p class="chk-step-meta">' + esc(ui('stepOf').replace('{a}', state.step + 1).replace('{b}', STEPS.length + 1)) + '</p>' +
+      '<h2 class="chk-step-title">' + esc(tr(step.title)) + '</h2>';
+    if (step.intro) html += '<p class="chk-step-intro">' + esc(tr(step.intro)) + '</p>';
+    if (step.idReminder) html += '<p class="chk-note">' + idReminderHtml() + '</p>';
 
-    var existing = {};
-    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
-      existing[inp.dataset.key] = inp.value;
-    });
-    // Merge pending values from localStorage (first paint after a state restore)
-    if (pendingDeductions) {
-      Object.keys(pendingDeductions).forEach(function (k) {
-        if (!existing[k]) existing[k] = pendingDeductions[k];
+    step.fields.forEach(function (f) { if (fieldVisible(f)) html += renderField(f); });
+
+    html += '<div class="chk-nav">' +
+      '<button class="chk-btn chk-btn-ghost" id="chk-back">' + esc(ui('back')) + '</button>' +
+      '<button class="chk-btn chk-btn-primary" id="chk-next">' +
+        esc(state.step === STEPS.length - 1 ? ui('review') : ui('next')) + '</button></div>';
+    html += '</div>';
+    root.innerHTML = html;
+    wireStep(step);
+  }
+
+  function renderField(f) {
+    var val = state.answers[f.id];
+    var optTag = f.opt ? ' <span class="chk-opt-tag">(' + esc(ui('optional')) + ')</span>' : '';
+    var h = '<div class="chk-field" data-fid="' + f.id + '">';
+
+    if (f.type === 'checklist') {
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>';
+      if (f.help) h += '<p class="chk-help">' + esc(tr(f.help)) + '</p>';
+      var sel = val || {};
+      fieldOptions(f).forEach(function (o) {
+        var on = !!sel[o.id];
+        h += '<label class="chk-check' + (on ? ' on' : '') + '" data-opt="' + o.id + '">' +
+          '<input type="checkbox"' + (on ? ' checked' : '') + '>' +
+          '<span>' + esc(tr(o.label)) + '</span></label>';
       });
-      pendingDeductions = null;
-    }
-
-    $('ystc-deductions').innerHTML = ordered.map(buildDeductionHtml).join('');
-
-    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
-      if (existing[inp.dataset.key]) inp.value = existing[inp.dataset.key];
-      inp.addEventListener('input', calculate);
-    });
-  }
-
-  function sumDeductions() {
-    var s = 0;
-    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
-      s += parseFloat(inp.value) || 0;
-    });
-    return s;
-  }
-
-  function deductionsBreakdown() {
-    var items = [];
-    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
-      var v = parseFloat(inp.value) || 0;
-      if (v > 0) {
-        var key = inp.dataset.key;
-        var d = DEDUCTION_CATALOG[key];
-        items.push((d ? d.label[lang] : key) + ': ' + fmt(v));
-      }
-    });
-    return items.length ? items.join(' | ') : '—';
-  }
-
-  /* ============================ MAIN CALC ============================ */
-
-  function calculate() {
-    var year      = $('ystc-year').value;
-    var residency = $('ystc-residency').value;
-    var hasHelp   = $('ystc-help').checked;
-    var exempt    = $('ystc-medex').checked;
-    var hasPhi    = $('ystc-phi').checked;
-
-    var wages    = Math.max(0, parseFloat($('ystc-wages').value)    || 0);
-    var interest = Math.max(0, parseFloat($('ystc-interest').value) || 0);
-    var business = Math.max(0, parseFloat($('ystc-business').value) || 0);
-    var rental   = Math.max(0, parseFloat($('ystc-rental').value)   || 0);
-    var totalIncome = wages + interest + business + rental;
-
-    var totalDeductions = sumDeductions();
-    var taxableIncome = Math.max(0, totalIncome - totalDeductions);
-
-    var paygw        = Math.max(0, parseFloat($('ystc-paygw').value)       || 0);
-    var instalments  = Math.max(0, parseFloat($('ystc-instalments').value) || 0);
-    var totalPrepaid = paygw + instalments;
-
-    $('ystc-total-income').textContent     = fmt(totalIncome);
-    $('ystc-total-deductions').textContent = fmt(totalDeductions);
-    $('ystc-total-prepaid').textContent    = fmt(totalPrepaid);
-
-    var d = TAX_DATA[year];
-    var tax   = calcIncomeTax(taxableIncome, d.brackets[residency]);
-    var lito  = calcLito(taxableIncome, residency);
-    var ml    = calcMedicareLevy(taxableIncome, d.medicareLevy, exempt, residency);
-    var mls   = calcMls(taxableIncome, d.mls, hasPhi, exempt, residency);
-    var help  = calcHelp(taxableIncome, d.help, hasHelp);
-    var total = Math.max(0, tax - lito) + ml + mls + help;
-    var net   = taxableIncome - total;
-    var eff   = taxableIncome > 0 ? total / taxableIncome : 0;
-    var outcome = totalPrepaid - total;
-
-    $('ystc-r-income').textContent = fmt(totalIncome);
-    $('ystc-r-deds').textContent   = '-' + fmt(totalDeductions);
-    $('ystc-r-ti').textContent     = fmt(taxableIncome);
-    $('ystc-r-tax').textContent    = fmt(tax);
-    $('ystc-r-lito').textContent   = lito > 0 ? '-' + fmt(lito) : fmt(0);
-    $('ystc-r-ml').textContent     = fmt(ml);
-    $('ystc-r-mls').textContent    = fmt(mls);
-    $('ystc-r-help').textContent   = fmt(help);
-    $('ystc-r-total').textContent  = fmt(total);
-    $('ystc-r-paid').textContent   = totalPrepaid > 0 ? '-' + fmt(totalPrepaid) : fmt(0);
-    $('ystc-r-net').textContent    = fmt(net);
-    $('ystc-r-eff').textContent    = fmtPct(eff);
-
-    var row = $('ystc-r-outcome-row');
-    var lbl = $('ystc-r-outcome-label');
-    var val = $('ystc-r-outcome');
-    if (outcome >= 0) {
-      row.classList.add('ystc-refund'); row.classList.remove('ystc-owing');
-      lbl.textContent = t('r_refund');
-      val.textContent = fmt(outcome);
+    } else if (f.type === 'occupation') {
+      var selLabel = val ? occLabel(val) : '';
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        (f.help ? '<p class="chk-help">' + esc(tr(f.help)) + '</p>' : '') +
+        '<div class="chk-combo" data-fid="' + f.id + '">' +
+          '<input class="chk-input chk-combo-input" id="fi-' + f.id + '" autocomplete="off" placeholder="' + esc(ui('occSearch')) + '" value="' + esc(selLabel) + '">' +
+          '<ul class="chk-combo-list" id="cl-' + f.id + '"></ul>' +
+        '</div>';
+    } else if (f.type === 'yesno') {
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label><div class="chk-yn">' +
+        '<button type="button" data-yn="yes" class="' + (val === 'yes' ? 'on' : '') + '">' + esc(ui('yes')) + '</button>' +
+        '<button type="button" data-yn="no" class="' + (val === 'no' ? 'on' : '') + '">' + esc(ui('no')) + '</button>' +
+        '</div>';
+    } else if (f.type === 'select') {
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        '<select class="chk-select" id="fi-' + f.id + '"><option value="">-</option>';
+      f.options.forEach(function (o) {
+        h += '<option value="' + o.id + '"' + (val === o.id ? ' selected' : '') + '>' + esc(tr(o.label)) + '</option>';
+      });
+      h += '</select>';
+    } else if (f.type === 'textarea') {
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        '<textarea class="chk-textarea" id="fi-' + f.id + '">' + esc(val || '') + '</textarea>';
     } else {
-      row.classList.add('ystc-owing'); row.classList.remove('ystc-refund');
-      lbl.textContent = t('r_owing');
-      val.textContent = fmt(Math.abs(outcome));
+      var typeAttr = f.type === 'email' ? 'email' : (f.type === 'tel' ? 'tel' : (f.type === 'date' ? 'date' : 'text'));
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        (f.help ? '<p class="chk-help">' + esc(tr(f.help)) + '</p>' : '') +
+        '<input class="chk-input" type="' + typeAttr + '" id="fi-' + f.id + '" value="' + esc(val || '') + '">';
     }
+    h += '<p class="chk-err" id="er-' + f.id + '"></p></div>';
+    return h;
+  }
 
-    var result = {
-      year: year, residency: residency, occupation: combo.selected,
-      wages: wages, interest: interest, business: business, rental: rental,
-      totalIncome: totalIncome, totalDeductions: totalDeductions,
-      taxableIncome: taxableIncome,
-      tax: tax, lito: lito, ml: ml, mls: mls, help: help,
-      total: total, net: net, eff: eff,
-      paygw: paygw, instalments: instalments,
-      totalPrepaid: totalPrepaid, outcome: outcome
+  function showErr(fid, msg) {
+    var input = root.querySelector('#fi-' + fid);
+    var er = root.querySelector('#er-' + fid);
+    if (er) { er.textContent = msg || ''; er.style.display = msg ? 'block' : 'none'; }
+    if (input) { if (msg) input.classList.add('chk-invalid'); else input.classList.remove('chk-invalid'); }
+  }
+
+  /* Searchable occupation combobox: filters OCCUPATIONS as you type, stores the
+     selected occupation KEY in state.answers[f.id] (not the typed text). */
+  function wireCombo(f) {
+    var input = root.querySelector('#fi-' + f.id);
+    var list = root.querySelector('#cl-' + f.id);
+    if (!input || !list) return;
+    var active = -1, filtered = [];
+    function hl(label, q) {
+      if (!q) return esc(label);
+      var lo = label.toLowerCase(), i = lo.indexOf(q);
+      if (i < 0) return esc(label);
+      return esc(label.slice(0, i)) + '<mark>' + esc(label.slice(i, i + q.length)) + '</mark>' + esc(label.slice(i + q.length));
+    }
+    function renderList(qraw) {
+      var q = (qraw || '').trim().toLowerCase();
+      filtered = occSorted();
+      if (q) filtered = filtered.filter(function (o) { return tr(o.label).toLowerCase().indexOf(q) !== -1; });
+      if (!filtered.length) { list.innerHTML = '<li class="chk-combo-empty">' + esc(ui('occEmpty')) + '</li>'; return; }
+      list.innerHTML = filtered.map(function (o, i) {
+        var cls = 'chk-combo-opt' + (o.key === state.answers[f.id] ? ' sel' : '') + (i === active ? ' active' : '');
+        return '<li class="' + cls + '" data-key="' + o.key + '">' + hl(tr(o.label), q) + '</li>';
+      }).join('');
+    }
+    function open() { list.style.display = 'block'; }
+    function close() { list.style.display = 'none'; }
+    function restore() { input.value = state.answers[f.id] ? occLabel(state.answers[f.id]) : ''; }
+    function pick(key) {
+      if (!occByKey(key)) return;
+      state.answers[f.id] = key;
+      restore();
+      close();
+    }
+    input.onfocus = function () { active = -1; renderList(''); open(); this.select(); };
+    input.oninput = function () { active = 0; renderList(this.value); open(); };
+    input.onkeydown = function (e) {
+      var n = filtered.length;
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = active < 0 ? 0 : Math.min(active + 1, n - 1); renderList(input.value); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); renderList(input.value); }
+      else if (e.key === 'Enter') { if (active >= 0 && filtered[active]) { e.preventDefault(); pick(filtered[active].key); } }
+      else if (e.key === 'Escape') { restore(); close(); input.blur(); }
     };
-
-    try { updateSummaries(result); } catch (e) {}
-    try { saveState(); } catch (e) {}
-
-    return result;
-  }
-
-  /* ============================ SUBMIT ============================ */
-
-  function disableButtons(disabled) {
-    $('ystc-btn-primary').disabled = disabled;
-    $('ystc-btn-secondary').disabled = disabled;
-  }
-  function setMsg(text, type) {
-    var m = $('ystc-msg');
-    m.className = 'ystc-msg' + (type ? ' ' + type : '');
-    m.textContent = text || '';
-  }
-
-  function populateHiddenForm(r) {
-    var form = document.getElementById('tax-calc-form');
-    if (!form) return null;
-
-    var set = function (n, v) {
-      var el = form.querySelector('[name="' + n + '"]');
-      if (el) el.value = v;
+    list.onmousedown = function (e) {
+      var li = e.target && e.target.closest ? e.target.closest('li[data-key]') : null;
+      if (!li) return;
+      e.preventDefault();
+      pick(li.getAttribute('data-key'));
     };
-
-    var resKey = 'res_' + r.residency;
-    var residencyLabel = t(resKey);
-    var occLabel = (OCCUPATIONS.find(function (o) { return o.key === r.occupation; }) || {}).label;
-    occLabel = occLabel ? occLabel[lang] : r.occupation;
-    var langLabel = { en: 'English', es: 'Español', pt: 'Português' }[lang] || lang;
-
-    set('client-name',          $('ystc-name').value.trim());
-    set('client-email',         $('ystc-email').value.trim());
-    set('language',             langLabel);
-    set('tax-year',             r.year);
-    set('residency',            residencyLabel);
-    set('occupation',           occLabel);
-    set('wages',                fmt(r.wages));
-    set('interest',             fmt(r.interest));
-    set('business-income',      fmt(r.business));
-    set('rental-income',        fmt(r.rental));
-    set('total-income',         fmt(r.totalIncome));
-    set('deductions-breakdown', deductionsBreakdown());
-    set('total-deductions',     fmt(r.totalDeductions));
-    set('taxable-income',       fmt(r.taxableIncome));
-    set('gross-tax',            fmt(r.tax));
-    set('lito',                 fmt(r.lito));
-    set('medicare-levy',        fmt(r.ml));
-    set('mls',                  fmt(r.mls));
-    set('help-repayment',       fmt(r.help));
-    set('total-tax',            fmt(r.total));
-    set('paygw',                fmt(r.paygw));
-    set('payg-instalments',     fmt(r.instalments));
-    set('total-prepaid',        fmt(r.totalPrepaid));
-    set('outcome-type',         r.outcome >= 0 ? 'Refund' : 'Payable');
-    set('estimated-outcome',    fmt(Math.abs(r.outcome)));
-    set('net-income',           fmt(r.net));
-    set('effective-rate',       fmtPct(r.eff));
-
-    return form;
+    input.onblur = function () { setTimeout(function () { restore(); close(); }, 150); };
   }
 
-  function waitForWebflowResult(form, onResult, timeoutMs) {
-    timeoutMs = timeoutMs || 8000;
-    var wrapper = form.closest('.w-form');
-    if (!wrapper) { onResult('timeout'); return; }
-    var done = wrapper.querySelector('.w-form-done');
-    var fail = wrapper.querySelector('.w-form-fail');
-    var start = Date.now();
-    (function check() {
-      if (done && done.style.display === 'block') { onResult('success'); return; }
-      if (fail && fail.style.display === 'block') { onResult('fail'); return; }
-      if (Date.now() - start > timeoutMs) { onResult('timeout'); return; }
-      setTimeout(check, 180);
-    })();
-  }
-
-  function handleSubmit(withRedirect) {
-    var name  = $('ystc-name').value.trim();
-    var email = $('ystc-email').value.trim();
-
-    if (!name) { setMsg(t('msg_no_name'), 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setMsg(t('msg_no_email'), 'error'); return;
-    }
-
-    // Only enforce Turnstile when a widget is mounted (no widget means the
-    // form was published without Turnstile and we can submit directly).
-    var turnstileMounted = !!document.getElementById('ystc-turnstile') &&
-                            window.turnstile && turnstileWidgetId !== null;
-    if (turnstileMounted && !turnstileToken) {
-      setMsg(t('msg_turnstile'), 'error');
-      return;
-    }
-
-    var r = calculate();
-    var form = populateHiddenForm(r);
-    if (!form) { setMsg(t('msg_no_form'), 'error'); return; }
-
-    injectTurnstileToken();
-
-    disableButtons(true);
-    setMsg(t('msg_sending'), 'success');
-
-    var submitBtn = form.querySelector('input[type="submit"], button[type="submit"]');
-    if (submitBtn) submitBtn.click();
-    else if (typeof form.requestSubmit === 'function') form.requestSubmit();
-    else form.submit();
-
-    waitForWebflowResult(form, function (result) {
-      if (result === 'fail') {
-        disableButtons(false);
-        setMsg(t('msg_fail'), 'error');
-        resetTurnstile();
-        return;
-      }
-      if (withRedirect) {
-        window.location.href = 'https://www.taxbne.com.au/services/tax-return';
-      } else {
-        setMsg(t('msg_sent'), 'success');
-        resetTurnstile();
-      }
-    });
-  }
-
-  /* ============================ I18N APPLY ============================ */
-
-  function applyLang() {
-    document.documentElement.setAttribute('lang', lang);
-
-    document.querySelectorAll('[data-i18n]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n');
-      el.textContent = t(key);
-    });
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(function (el) {
-      var key = el.getAttribute('data-i18n-placeholder');
-      el.placeholder = t(key);
-    });
-
-    document.querySelectorAll('.ystc-lang').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-lang') === lang);
-    });
-
-    var input = $('ystc-occupation');
-    if (input) input.value = comboLabel();
-    if ($('ystc-occ-list') && $('ystc-occ-list').classList.contains('open')) {
-      combo.filtered = comboFilter(combo.query);
-      comboRender();
-    }
-
-    renderDeductions();
-    calculate();
-  }
-
-  function setLang(newLang) {
-    if (!T[newLang] || newLang === lang) return;
-    lang = newLang;
-    try { localStorage.setItem('ystc-lang', newLang); } catch (e) {}
-    applyLang();
-  }
-
-  /* ============================ UI INJECTION ============================ */
-  /* Used in MOUNT-DIV mode: if the page has <div id="ystc-mount"> but no
-     existing #ystc-root, this injects the full HTML + CSS at runtime. */
-
-  var UI_CSS = [
-    '#ystc-root, #ystc-root *, #ystc-root *::before, #ystc-root *::after { box-sizing: border-box; -webkit-text-fill-color: currentColor; }',
-    '#ystc-root { --ys-navy: #0A1F44; --ys-text: #0A1F44; --ys-muted: #555555; --ys-border: #E8E8E5; --ys-soft: #F7F7F5; --ys-mint: #5DCAA5; --ys-white: #FFFFFF; --ys-w-12: rgba(255,255,255,0.12); --ys-w-20: rgba(255,255,255,0.22); --ys-w-55: rgba(255,255,255,0.55); --ys-w-70: rgba(255,255,255,0.72); font-family: \'Space Grotesk\', -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif; color: var(--ys-text); max-width: 1120px; margin: 0 auto; line-height: 1.5; }',
-    '.ystc-head { display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 16px; }',
-    '.ystc-langs { display: flex; gap: 4px; padding: 4px; background: var(--ys-soft); border-radius: 10px; flex: none; align-self: flex-start; }',
-    '.ystc-lang { padding: 7px 14px; border: none; background: transparent; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--ys-muted); border-radius: 7px; letter-spacing: 0.05em; transition: background 120ms, color 120ms; }',
-    '.ystc-lang:hover { color: var(--ys-navy); }',
-    '.ystc-lang.active { background: var(--ys-navy); color: var(--ys-white); }',
-    '.ystc-grid { display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px; align-items: start; }',
-    '.ystc-col-inputs { background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 12px; padding: 28px; }',
-    '.ystc-section-h { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 13px; color: var(--ys-navy); letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }',
-    '.ystc-section-h:focus { outline: 2px solid rgba(10,31,68,0.25); outline-offset: 4px; border-radius: 4px; }',
-    '.ystc-section-h:focus:not(:focus-visible) { outline: none; }',
-    '.ystc-sh-label { flex: none; }',
-    '.ystc-section-summary { flex: 1; font-size: 11px; font-weight: 500; color: var(--ys-muted); text-transform: none; letter-spacing: normal; text-align: right; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0; transition: opacity 150ms; }',
-    '.ystc-section.collapsed .ystc-section-summary { opacity: 1; }',
-    '.ystc-section-chevron { font-size: 11px; color: var(--ys-muted); transition: transform 200ms; flex: none; }',
-    '.ystc-section.collapsed .ystc-section-chevron { transform: rotate(-90deg); }',
-    '.ystc-section.collapsed .ystc-section-h { margin-bottom: 0; }',
-    '.ystc-section.collapsed .ystc-section-body { display: none; }',
-    '.ystc-section + .ystc-section { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--ys-border); }',
-    '.ystc-section.collapsed + .ystc-section, .ystc-section + .ystc-section.collapsed { margin-top: 16px; padding-top: 16px; }',
-    '.ystc-field { margin-bottom: 14px; }',
-    '.ystc-field:last-child { margin-bottom: 0; }',
-    '.ystc-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ys-navy); margin-bottom: 6px; }',
-    '.ystc-input, .ystc-select { width: 100%; padding: 11px 14px; font-family: inherit; font-size: 15px; color: var(--ys-text); background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 8px; -webkit-appearance: none; appearance: none; line-height: 1.4; transition: border-color 120ms, box-shadow 120ms; }',
-    '.ystc-input::placeholder { color: #9AA3B2; }',
-    '.ystc-select { background-image: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'><path fill=\'none\' stroke=\'%230A1F44\' stroke-width=\'2\' d=\'M1 1l5 5 5-5\'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 40px; }',
-    '.ystc-input:focus, .ystc-select:focus { outline: none; border-color: var(--ys-navy); box-shadow: 0 0 0 3px rgba(10,31,68,0.10); }',
-    '.ystc-input-money { padding-left: 32px; }',
-    '.ystc-field-money { position: relative; }',
-    '.ystc-field-money::before { content: \'$\'; position: absolute; left: 14px; top: calc(50% + 10px); transform: translateY(-50%); font-size: 14px; color: #9AA3B2; pointer-events: none; font-weight: 500; }',
-    '.ystc-combo { position: relative; }',
-    '.ystc-combo-input { padding-right: 36px; }',
-    '.ystc-combo-chevron { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #9AA3B2; pointer-events: none; font-size: 11px; line-height: 1; transition: transform 150ms; }',
-    '.ystc-combo.open .ystc-combo-chevron { transform: translateY(-50%) rotate(180deg); }',
-    '.ystc-combo-list { position: absolute; top: calc(100% + 4px); left: 0; right: 0; max-height: 280px; overflow-y: auto; background: var(--ys-white); border: 1px solid var(--ys-border); border-radius: 8px; box-shadow: 0 12px 28px rgba(10,31,68,0.12); list-style: none; padding: 6px; margin: 0; z-index: 30; display: none; }',
-    '.ystc-combo-list.open { display: block; }',
-    '.ystc-combo-opt { padding: 9px 12px; cursor: pointer; border-radius: 6px; font-size: 14px; color: var(--ys-text); line-height: 1.4; }',
-    '.ystc-combo-opt:hover, .ystc-combo-opt.active { background: var(--ys-soft); }',
-    '.ystc-combo-opt.selected { background: rgba(10,31,68,0.06); font-weight: 600; color: var(--ys-navy); }',
-    '.ystc-combo-opt mark { background: rgba(93,202,165,0.35); color: inherit; padding: 0; }',
-    '.ystc-combo-empty { padding: 14px 12px; color: var(--ys-muted); font-size: 13px; text-align: center; }',
-    '.ystc-running { display: flex; justify-content: space-between; align-items: baseline; background: var(--ys-soft); border-radius: 8px; padding: 12px 14px; margin-top: 14px; font-size: 14px; color: var(--ys-muted); }',
-    '.ystc-running span:last-child { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 16px; color: var(--ys-navy); font-variant-numeric: tabular-nums; }',
-    '.ystc-helper { font-size: 12px; color: var(--ys-muted); margin: 0 0 14px; }',
-    '.ystc-toggles { display: flex; flex-direction: column; gap: 12px; }',
-    '.ystc-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ys-text); cursor: pointer; user-select: none; }',
-    '.ystc-check input { width: 18px; height: 18px; accent-color: var(--ys-navy); margin: 0; flex: none; cursor: pointer; }',
-    '.ystc-tip { position: relative; display: inline-block; }',
-    '.ystc-tip-icon { display: inline-flex; align-items: center; justify-content: center; width: 15px; height: 15px; border-radius: 50%; background: #D0D5DD; color: var(--ys-white); font-size: 10px; font-weight: 700; line-height: 1; cursor: help; outline: none; transition: background 120ms; }',
-    '.ystc-tip-icon:hover, .ystc-tip-icon:focus { background: var(--ys-navy); }',
-    '.ystc-tip-text { position: absolute; top: calc(100% + 8px); left: -10px; width: 260px; max-width: calc(100vw - 40px); padding: 10px 12px; background: var(--ys-navy); color: var(--ys-white); font-family: \'Space Grotesk\', sans-serif; font-size: 12px; font-weight: 400; line-height: 1.5; text-transform: none; letter-spacing: normal; border-radius: 6px; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 120ms, visibility 120ms; z-index: 100; box-shadow: 0 6px 16px rgba(0,0,0,0.18); }',
-    '.ystc-tip-text::before { content: \'\'; position: absolute; bottom: 100%; left: 15px; border: 5px solid transparent; border-bottom-color: var(--ys-navy); }',
-    '.ystc-tip:hover .ystc-tip-text, .ystc-tip:focus-within .ystc-tip-text { opacity: 1; visibility: visible; }',
-    '.ystc-col-results { background: var(--ys-navy); border-radius: 16px; padding: 32px; color: var(--ys-white); position: sticky; top: 20px; }',
-    '.ystc-res-title { font-family: \'Montserrat\', sans-serif; font-weight: 700; font-size: 20px; color: var(--ys-white); margin: 0 0 4px; }',
-    '.ystc-res-sub { font-size: 13px; color: var(--ys-w-70); margin: 0 0 22px; }',
-    '.ystc-res-list { list-style: none; padding: 0; margin: 0; }',
-    '.ystc-res-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--ys-w-12); font-size: 14px; color: var(--ys-w-70); }',
-    '.ystc-res-list li span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--ys-white); font-size: 15px; }',
-    '.ystc-res-list li.ystc-r-ti { color: var(--ys-white); border-bottom: 1.5px solid var(--ys-w-20); padding: 12px 0; font-weight: 600; }',
-    '.ystc-res-list li.ystc-total { margin-top: 6px; padding-top: 16px; border-top: 1.5px solid var(--ys-w-20); border-bottom: none; font-size: 15px; color: var(--ys-white); font-weight: 600; }',
-    '.ystc-res-list li.ystc-total span:last-child { font-family: \'Montserrat\', sans-serif; font-size: 26px; font-weight: 700; }',
-    '.ystc-res-list li.ystc-subtotal { padding: 12px 0; font-weight: 600; color: var(--ys-white); border-top: 1.5px solid var(--ys-w-20); border-bottom: 1px solid var(--ys-w-12); margin-top: 6px; }',
-    '.ystc-res-list li.ystc-subtotal span:last-child { font-family: \'Montserrat\', sans-serif; font-size: 17px; font-weight: 700; }',
-    '.ystc-res-list li.ystc-total.ystc-refund span:last-child { color: var(--ys-mint); }',
-    '.ystc-res-list li.ystc-total.ystc-owing  span:last-child { color: #FFB4A8; }',
-    '.ystc-res-list li.ystc-breakdown-toggle-row { padding: 0; border-bottom: 1px solid var(--ys-w-12); display: block; }',
-    '.ystc-breakdown-toggle { width: 100%; padding: 11px 0; background: transparent; border: none; color: var(--ys-w-55); cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-family: \'Montserrat\', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; transition: color 120ms; }',
-    '.ystc-breakdown-toggle:hover { color: var(--ys-white); }',
-    '.ystc-breakdown-toggle:focus { outline: 2px solid rgba(255,255,255,0.3); outline-offset: 2px; border-radius: 4px; }',
-    '.ystc-breakdown-toggle:focus:not(:focus-visible) { outline: none; }',
-    '.ystc-breakdown-chevron { font-size: 11px; transition: transform 200ms; }',
-    '.ystc-col-results:not(.breakdown-collapsed) .ystc-breakdown-chevron { transform: rotate(180deg); }',
-    '.ystc-col-results.breakdown-collapsed .ystc-res-list li[data-breakdown] { display: none; }',
-    '.ystc-divider { height: 1px; background: var(--ys-w-12); margin: 24px 0; }',
-    '.ystc-cta-intro { font-size: 13px; color: var(--ys-w-70); margin: 0 0 14px; }',
-    '.ystc-dark-label { display: block; font-size: 12px; font-weight: 600; color: var(--ys-white); margin-bottom: 6px; letter-spacing: 0.03em; }',
-    '.ystc-dark-input { width: 100%; padding: 11px 14px; font-family: inherit; font-size: 15px; color: var(--ys-white); background: var(--ys-w-12); border: 1px solid var(--ys-w-20); border-radius: 8px; -webkit-appearance: none; appearance: none; transition: border-color 120ms, background 120ms; }',
-    '.ystc-dark-input::placeholder { color: var(--ys-w-55); }',
-    '.ystc-dark-input:focus { outline: none; border-color: var(--ys-mint); background: rgba(255,255,255,0.16); }',
-    '.ystc-dark-field + .ystc-dark-field { margin-top: 12px; }',
-    '.ystc-btn-white { width: 100%; margin-top: 18px; padding: 14px 20px; font-family: inherit; font-size: 14px; font-weight: 700; color: var(--ys-navy); background: var(--ys-white); border: none; border-radius: 8px; cursor: pointer; transition: background 120ms, box-shadow 120ms; letter-spacing: 0.01em; }',
-    '.ystc-btn-white:hover { background: #F3F4F2; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }',
-    '.ystc-btn-ghost { width: 100%; margin-top: 10px; padding: 12px 20px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--ys-w-70); background: transparent; border: 1px solid var(--ys-w-20); border-radius: 8px; cursor: pointer; transition: color 120ms, border-color 120ms; }',
-    '.ystc-btn-ghost:hover { color: var(--ys-white); border-color: var(--ys-white); }',
-    '.ystc-btn-white:disabled, .ystc-btn-ghost:disabled { opacity: 0.55; cursor: not-allowed; }',
-    '.ystc-turnstile-wrap { margin: 18px 0 0; min-height: 65px; display: flex; justify-content: center; }',
-    '.ystc-turnstile-wrap:empty, .ystc-turnstile-wrap #ystc-turnstile:empty { min-height: 0; }',
-    '.ystc-msg { margin: 14px 0 0; font-size: 13px; min-height: 1.2em; color: var(--ys-w-70); line-height: 1.5; }',
-    '.ystc-msg.error   { color: #FFB4A8; }',
-    '.ystc-msg.success { color: var(--ys-mint); }',
-    '.ystc-disclaimer { margin: 24px 0 0; font-size: 12px; color: var(--ys-muted); line-height: 1.6; }',
-    '#tax-calc-form, .w-form:has(#tax-calc-form) { display: none !important; }',
-    '@media (max-width: 900px) { .ystc-grid { grid-template-columns: 1fr; } .ystc-col-results { position: static; } .ystc-title { font-size: 26px; } .ystc-col-inputs, .ystc-col-results { padding: 24px; } }',
-    '@media (max-width: 600px) {',
-      '.ystc-col-inputs, .ystc-col-results { padding: 18px; border-radius: 10px; }',
-      '.ystc-section + .ystc-section { margin-top: 18px; padding-top: 18px; }',
-      '.ystc-section-h { font-size: 12px; flex-wrap: wrap; gap: 6px; }',
-      '.ystc-section-summary { flex-basis: 100%; text-align: left; margin-left: 0; white-space: normal; font-size: 11px; opacity: 0.85; }',
-      '.ystc-section.collapsed .ystc-section-summary { opacity: 1; }',
-      '.ystc-label { font-size: 13px; }',
-      '.ystc-input, .ystc-select { padding: 13px 14px; font-size: 16px; }',
-      '.ystc-input-money { padding-left: 32px; }',
-      '.ystc-field-money::before { top: 50%; transform: translateY(calc(-50% + 11px)); }',
-      '.ystc-tip-icon { width: 22px; height: 22px; font-size: 12px; }',
-      '.ystc-tip-text { width: auto; min-width: 200px; max-width: calc(100vw - 32px); left: 0; right: 0; margin: 0 auto; font-size: 13px; }',
-      '.ystc-tip-text::before { left: 50%; transform: translateX(-50%); }',
-      '.ystc-check { font-size: 15px; padding: 4px 0; }',
-      '.ystc-check input { width: 20px; height: 20px; }',
-      '.ystc-res-title { font-size: 18px; }',
-      '.ystc-res-list li { padding: 10px 0; font-size: 13px; }',
-      '.ystc-res-list li span:last-child { font-size: 14px; }',
-      '.ystc-res-list li.ystc-r-ti { padding: 14px 0; font-size: 15px; }',
-      '.ystc-res-list li.ystc-r-ti span:last-child { font-size: 16px; }',
-      '.ystc-res-list li.ystc-subtotal { padding: 14px 0; }',
-      '.ystc-res-list li.ystc-subtotal span:last-child { font-size: 16px; }',
-      '.ystc-res-list li.ystc-total span:last-child { font-size: 24px; }',
-      '.ystc-dark-input { padding: 13px 14px; font-size: 16px; }',
-      '.ystc-btn-white { padding: 15px 18px; font-size: 15px; }',
-      '.ystc-btn-ghost { padding: 13px 18px; font-size: 13px; }',
-      '.ystc-combo-list { max-height: 240px; }',
-      '.ystc-combo-opt { padding: 12px 12px; font-size: 15px; }',
-      '.ystc-running { padding: 14px; font-size: 14px; }',
-      '.ystc-running span:last-child { font-size: 16px; }',
-      '.ystc-langs { padding: 3px; }',
-      '.ystc-lang { padding: 6px 10px; }',
-      '.ystc-disclaimer { font-size: 11px; }',
-    '}',
-    '@media (max-width: 380px) {',
-      '.ystc-col-inputs, .ystc-col-results { padding: 14px; }',
-      '.ystc-input, .ystc-select, .ystc-dark-input { padding: 12px 12px; font-size: 16px; }',
-      '.ystc-input-money { padding-left: 28px; }',
-      '.ystc-field-money::before { left: 12px; }',
-      '.ystc-res-list li.ystc-total span:last-child { font-size: 22px; }',
-      '.ystc-combo-input { padding-right: 30px; }',
-    '}'
-  ].join('\n');
-
-  var UI_HTML = [
-    '<div id="ystc-root">',
-      '<div class="ystc-head">',
-        '<div class="ystc-langs" role="tablist" aria-label="Language">',
-          '<button type="button" class="ystc-lang" data-lang="en" role="tab">EN</button>',
-          '<button type="button" class="ystc-lang" data-lang="es" role="tab">ES</button>',
-          '<button type="button" class="ystc-lang" data-lang="pt" role="tab">PT</button>',
-        '</div>',
-      '</div>',
-      '<div class="ystc-grid">',
-        '<div class="ystc-col-inputs">',
-          '<div class="ystc-section" data-section="details">',
-            '<h3 class="ystc-section-h" data-section-toggle="details" role="button" tabindex="0" aria-expanded="true">',
-              '<span class="ystc-sh-label" data-i18n="sec_details">Your details</span>',
-              '<span class="ystc-section-summary" data-section-summary="details"></span>',
-              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
-            '</h3>',
-            '<div class="ystc-section-body">',
-              '<div class="ystc-field">',
-                '<label class="ystc-label" for="ystc-year"><span data-i18n="f_year">Income year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_year">.</span></span></label>',
-                '<select id="ystc-year" class="ystc-select"><option value="2025-26">2025-26</option><option value="2024-25">2024-25</option><option value="2023-24">2023-24</option></select>',
-              '</div>',
-              '<div class="ystc-field">',
-                '<label class="ystc-label" for="ystc-residency"><span data-i18n="f_residency">Residency for tax</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_residency">.</span></span></label>',
-                '<select id="ystc-residency" class="ystc-select"><option value="resident" data-i18n="res_resident">Australian resident</option><option value="nonResident" data-i18n="res_nonResident">Foreign resident</option><option value="whm" data-i18n="res_whm">Working Holiday Maker</option></select>',
-              '</div>',
-              '<div class="ystc-field">',
-                '<label class="ystc-label" for="ystc-occupation"><span data-i18n="f_occupation">Occupation</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_occupation">.</span></span></label>',
-                '<div id="ystc-combo" class="ystc-combo">',
-                  '<input type="text" id="ystc-occupation" class="ystc-input ystc-combo-input" data-i18n-placeholder="ph_search" placeholder="Type to search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ystc-occ-list">',
-                  '<span class="ystc-combo-chevron">&#9662;</span>',
-                  '<ul id="ystc-occ-list" class="ystc-combo-list" role="listbox"></ul>',
-                '</div>',
-              '</div>',
-            '</div>',
-          '</div>',
-          '<div class="ystc-section" data-section="income">',
-            '<h3 class="ystc-section-h" data-section-toggle="income" role="button" tabindex="0" aria-expanded="true">',
-              '<span class="ystc-sh-label" data-i18n="sec_income">Income</span>',
-              '<span class="ystc-section-summary" data-section-summary="income"></span>',
-              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
-            '</h3>',
-            '<div class="ystc-section-body">',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-wages"><span data-i18n="f_wages">Salary &amp; wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_wages">.</span></span></label><input type="number" id="ystc-wages" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-interest"><span data-i18n="f_interest">Interest income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_interest">.</span></span></label><input type="number" id="ystc-interest" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-business"><span data-i18n="f_business">Net business income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_business">.</span></span></label><input type="number" id="ystc-business" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-rental"><span data-i18n="f_rental">Net rental income</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_rental">.</span></span></label><input type="number" id="ystc-rental" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-running"><span data-i18n="f_total_income">Total income</span><span id="ystc-total-income">$0</span></div>',
-            '</div>',
-          '</div>',
-          '<div class="ystc-section collapsed" data-section="deductions">',
-            '<h3 class="ystc-section-h" data-section-toggle="deductions" role="button" tabindex="0" aria-expanded="false">',
-              '<span class="ystc-sh-label" data-i18n="sec_deductions">Deductions</span>',
-              '<span class="ystc-section-summary" data-section-summary="deductions"></span>',
-              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
-            '</h3>',
-            '<div class="ystc-section-body">',
-              '<p class="ystc-helper" data-i18n="h_deductions">.</p>',
-              '<div id="ystc-deductions"></div>',
-              '<div class="ystc-running"><span data-i18n="f_total_deds">Total deductions</span><span id="ystc-total-deductions">$0</span></div>',
-            '</div>',
-          '</div>',
-          '<div class="ystc-section collapsed" data-section="other">',
-            '<h3 class="ystc-section-h" data-section-toggle="other" role="button" tabindex="0" aria-expanded="false">',
-              '<span class="ystc-sh-label" data-i18n="sec_other">Other factors</span>',
-              '<span class="ystc-section-summary" data-section-summary="other"></span>',
-              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
-            '</h3>',
-            '<div class="ystc-section-body">',
-              '<div class="ystc-toggles">',
-                '<label class="ystc-check"><input type="checkbox" id="ystc-help"><span data-i18n="chk_help">I have a HELP / HECS debt</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_help">.</span></span></label>',
-                '<label class="ystc-check"><input type="checkbox" id="ystc-medex"><span data-i18n="chk_medex">Medicare levy exemption applies</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_medex">.</span></span></label>',
-                '<label class="ystc-check"><input type="checkbox" id="ystc-phi"><span data-i18n="chk_phi">Private hospital cover for full year</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_phi">.</span></span></label>',
-              '</div>',
-            '</div>',
-          '</div>',
-          '<div class="ystc-section collapsed" data-section="paid">',
-            '<h3 class="ystc-section-h" data-section-toggle="paid" role="button" tabindex="0" aria-expanded="false">',
-              '<span class="ystc-sh-label" data-i18n="sec_paid">Tax already paid</span>',
-              '<span class="ystc-section-summary" data-section-summary="paid"></span>',
-              '<span class="ystc-section-chevron" aria-hidden="true">&#9662;</span>',
-            '</h3>',
-            '<div class="ystc-section-body">',
-              '<p class="ystc-helper" data-i18n="h_paid">.</p>',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-paygw"><span data-i18n="f_paygw">PAYG tax withheld from wages</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_paygw">.</span></span></label><input type="number" id="ystc-paygw" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-field ystc-field-money"><label class="ystc-label" for="ystc-instalments"><span data-i18n="f_instalments">PAYG instalments paid</span><span class="ystc-tip"><span class="ystc-tip-icon" tabindex="0">?</span><span class="ystc-tip-text" data-i18n="tip_instalments">.</span></span></label><input type="number" id="ystc-instalments" class="ystc-input ystc-input-money" min="0" step="1" placeholder="0" inputmode="numeric"></div>',
-              '<div class="ystc-running"><span data-i18n="f_total_paid">Total tax already paid</span><span id="ystc-total-prepaid">$0</span></div>',
-            '</div>',
-          '</div>',
-        '</div>',
-        '<div class="ystc-col-results breakdown-collapsed">',
-          '<h3 class="ystc-res-title" data-i18n="sec_results">Your estimated position</h3>',
-          '<p class="ystc-res-sub" data-i18n="sub_results">Updates live as you type.</p>',
-          '<ul class="ystc-res-list" aria-live="polite">',
-            '<li><span data-i18n="r_income">Total income</span><span id="ystc-r-income">$0</span></li>',
-            '<li><span data-i18n="r_deds">Less: deductions</span><span id="ystc-r-deds">$0</span></li>',
-            '<li class="ystc-r-ti"><span data-i18n="r_ti">Taxable income</span><span id="ystc-r-ti">$0</span></li>',
-            '<li class="ystc-breakdown-toggle-row">',
-              '<button type="button" id="ystc-breakdown-toggle" class="ystc-breakdown-toggle" aria-expanded="false" aria-controls="ystc-breakdown-rows">',
-                '<span data-i18n="r_breakdown">Tax breakdown</span>',
-                '<span class="ystc-breakdown-chevron" aria-hidden="true">&#9662;</span>',
-              '</button>',
-            '</li>',
-            '<li data-breakdown="1"><span data-i18n="r_tax">Income tax</span><span id="ystc-r-tax">$0</span></li>',
-            '<li data-breakdown="1"><span data-i18n="r_lito">Low income tax offset (LITO)</span><span id="ystc-r-lito">$0</span></li>',
-            '<li data-breakdown="1"><span data-i18n="r_ml">Medicare levy</span><span id="ystc-r-ml">$0</span></li>',
-            '<li data-breakdown="1"><span data-i18n="r_mls">Medicare levy surcharge</span><span id="ystc-r-mls">$0</span></li>',
-            '<li data-breakdown="1"><span data-i18n="r_help">HELP / HECS repayment</span><span id="ystc-r-help">$0</span></li>',
-            '<li class="ystc-subtotal"><span data-i18n="r_total">Total tax payable</span><span id="ystc-r-total">$0</span></li>',
-            '<li><span data-i18n="r_paid">Less: PAYG withheld &amp; instalments</span><span id="ystc-r-paid">$0</span></li>',
-            '<li class="ystc-total ystc-refund" id="ystc-r-outcome-row"><span id="ystc-r-outcome-label">Estimated refund</span><span id="ystc-r-outcome">$0</span></li>',
-            '<li><span data-i18n="r_net">Net take-home</span><span id="ystc-r-net">$0</span></li>',
-            '<li><span data-i18n="r_eff">Effective tax rate</span><span id="ystc-r-eff">0.0%</span></li>',
-          '</ul>',
-          '<div class="ystc-divider"></div>',
-          '<p class="ystc-cta-intro" data-i18n="h_cta">.</p>',
-          '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-name" data-i18n="f_name">Your name</label><input type="text" id="ystc-name" class="ystc-dark-input" autocomplete="name"></div>',
-          '<div class="ystc-dark-field"><label class="ystc-dark-label" for="ystc-email" data-i18n="f_email">Your email</label><input type="email" id="ystc-email" class="ystc-dark-input" autocomplete="email"></div>',
-          '<div class="ystc-turnstile-wrap"><div id="ystc-turnstile"></div></div>',
-          '<button type="button" id="ystc-btn-primary" class="ystc-btn-white" data-i18n="btn_primary">Send estimate &amp; start a tax return</button>',
-          '<button type="button" id="ystc-btn-secondary" class="ystc-btn-ghost" data-i18n="btn_secondary">Just email me the estimate</button>',
-          '<p id="ystc-msg" class="ystc-msg"></p>',
-        '</div>',
-      '</div>',
-      '<p class="ystc-disclaimer" data-i18n="disclaimer">.</p>',
-    '</div>'
-  ].join('');
-
-  function injectUI() {
-    if (document.getElementById('ystc-root')) return; // inline embed mode
-    var mount = document.getElementById('ystc-mount');
-    if (!mount) return; // no mount div either — nothing to do
-    if (!document.getElementById('ystc-styles')) {
-      var style = document.createElement('style');
-      style.id = 'ystc-styles';
-      style.appendChild(document.createTextNode(UI_CSS));
-      document.head.appendChild(style);
-    }
-    mount.innerHTML = UI_HTML;
-  }
-
-  /* ============================ STATE PERSISTENCE ============================ */
-
-  var STORAGE_KEY = 'ystc-state-v1';
-  var pendingDeductions = null;
-
-  function saveState() {
-    var deds = {};
-    document.querySelectorAll('.ystc-ded-input').forEach(function (inp) {
-      if (inp.value) deds[inp.dataset.key] = inp.value;
-    });
-    var collapsed = {};
-    document.querySelectorAll('.ystc-section').forEach(function (s) {
-      collapsed[s.dataset.section] = s.classList.contains('collapsed');
-    });
-    var resultsCol = document.querySelector('.ystc-col-results');
-    var breakdownCollapsed = !resultsCol || resultsCol.classList.contains('breakdown-collapsed');
-    var state = {
-      year: $('ystc-year').value,
-      residency: $('ystc-residency').value,
-      occupation: combo.selected,
-      wages: $('ystc-wages').value,
-      interest: $('ystc-interest').value,
-      business: $('ystc-business').value,
-      rental: $('ystc-rental').value,
-      paygw: $('ystc-paygw').value,
-      instalments: $('ystc-instalments').value,
-      help: $('ystc-help').checked,
-      medex: $('ystc-medex').checked,
-      phi: $('ystc-phi').checked,
-      deductions: deds,
-      collapsed: collapsed,
-      breakdownCollapsed: breakdownCollapsed
-    };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
-  }
-
-  function loadState() {
-    var s;
-    try { s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { s = null; }
-    if (!s) return;
-    if (s.year && $('ystc-year').querySelector('option[value="' + s.year + '"]')) $('ystc-year').value = s.year;
-    if (s.residency) $('ystc-residency').value = s.residency;
-    if (s.occupation && OCCUPATIONS.find(function (o) { return o.key === s.occupation; })) combo.selected = s.occupation;
-    if (s.wages) $('ystc-wages').value = s.wages;
-    if (s.interest) $('ystc-interest').value = s.interest;
-    if (s.business) $('ystc-business').value = s.business;
-    if (s.rental) $('ystc-rental').value = s.rental;
-    if (s.paygw) $('ystc-paygw').value = s.paygw;
-    if (s.instalments) $('ystc-instalments').value = s.instalments;
-    $('ystc-help').checked = !!s.help;
-    $('ystc-medex').checked = !!s.medex;
-    $('ystc-phi').checked = !!s.phi;
-    if (s.collapsed) {
-      Object.keys(s.collapsed).forEach(function (key) {
-        var sec = document.querySelector('.ystc-section[data-section="' + key + '"]');
-        if (!sec) return;
-        sec.classList.toggle('collapsed', !!s.collapsed[key]);
-        var h = sec.querySelector('.ystc-section-h');
-        if (h) h.setAttribute('aria-expanded', s.collapsed[key] ? 'false' : 'true');
-      });
-    }
-    if (typeof s.breakdownCollapsed === 'boolean') {
-      var col = document.querySelector('.ystc-col-results');
-      if (col) col.classList.toggle('breakdown-collapsed', s.breakdownCollapsed);
-      var bt = $('ystc-breakdown-toggle');
-      if (bt) bt.setAttribute('aria-expanded', s.breakdownCollapsed ? 'false' : 'true');
-    }
-    if (s.deductions && Object.keys(s.deductions).length) {
-      pendingDeductions = s.deductions; // applied by renderDeductions
-    }
-  }
-
-  /* ============================ COLLAPSIBLE SECTIONS ============================ */
-
-  function toggleSection(key) {
-    var sec = document.querySelector('.ystc-section[data-section="' + key + '"]');
-    if (!sec) return;
-    var collapsed = sec.classList.toggle('collapsed');
-    var h = sec.querySelector('.ystc-section-h');
-    if (h) h.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-    saveState();
-  }
-
-  function setupCollapsibles() {
-    document.querySelectorAll('.ystc-section-h[data-section-toggle]').forEach(function (h) {
-      h.addEventListener('click', function () { toggleSection(h.getAttribute('data-section-toggle')); });
-      h.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          toggleSection(h.getAttribute('data-section-toggle'));
+  function wireStep(step) {
+    step.fields.forEach(function (f) {
+      if (f.type === 'checklist') {
+        var checks = root.querySelectorAll('[data-fid="' + f.id + '"] .chk-check');
+        for (var i = 0; i < checks.length; i++) {
+          checks[i].onclick = function (e) {
+            if (e.target.tagName === 'INPUT') { /* let native toggle proceed */ } else { e.preventDefault(); }
+            var optId = this.getAttribute('data-opt');
+            var box = this.querySelector('input');
+            var nowOn;
+            if (e.target.tagName === 'INPUT') { nowOn = box.checked; }
+            else { nowOn = !box.checked; box.checked = nowOn; }
+            if (!state.answers[f.id]) state.answers[f.id] = {};
+            if (nowOn) state.answers[f.id][optId] = true; else delete state.answers[f.id][optId];
+            if (nowOn) this.classList.add('on'); else this.classList.remove('on');
+          };
         }
-      });
-    });
-
-    var bt = $('ystc-breakdown-toggle');
-    if (bt) {
-      bt.addEventListener('click', function () {
-        var col = document.querySelector('.ystc-col-results');
-        if (!col) return;
-        var collapsed = col.classList.toggle('breakdown-collapsed');
-        bt.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
-        saveState();
-      });
-    }
-  }
-
-  /* ============================ SECTION SUMMARIES ============================ */
-
-  function setSummary(key, text) {
-    var el = document.querySelector('[data-section-summary="' + key + '"]');
-    if (el) el.textContent = text;
-  }
-
-  function updateSummaries(r) {
-    // r = result object from calculate()
-    var residencyLabel = t('res_' + r.residency);
-    var occObj = OCCUPATIONS.find(function (o) { return o.key === r.occupation; });
-    var occLabel = occObj ? occObj.label[lang] : '';
-    setSummary('details', r.year + ' · ' + residencyLabel + ' · ' + occLabel);
-
-    setSummary('income', r.totalIncome > 0 ? fmt(r.totalIncome) : '—');
-
-    var dedCount = 0;
-    document.querySelectorAll('.ystc-ded-input').forEach(function (i) {
-      if (parseFloat(i.value) > 0) dedCount++;
-    });
-    setSummary('deductions', dedCount ? dedCount + ' · ' + fmt(r.totalDeductions) : '—');
-
-    var others = [];
-    if ($('ystc-help').checked)  others.push('HELP/HECS');
-    if ($('ystc-medex').checked) others.push('Medicare exempt');
-    if ($('ystc-phi').checked)   others.push('PHI');
-    setSummary('other', others.length ? others.join(' · ') : '—');
-
-    setSummary('paid', r.totalPrepaid > 0 ? fmt(r.totalPrepaid) : '—');
-  }
-
-  /* ============================ TURNSTILE ============================ */
-
-  var turnstileToken = null;
-  var turnstileWidgetId = null;
-
-  function readSitekeyFromForm() {
-    var form = document.getElementById('tax-calc-form');
-    if (!form) return null;
-    var sitekey = form.getAttribute('data-turnstile-sitekey');
-    // Remove so Webflow's form library stops trying to render its own widget
-    // inside the hidden form (it would never load because the form is offscreen).
-    if (sitekey) form.removeAttribute('data-turnstile-sitekey');
-    // Webflow keeps the submit button disabled until Turnstile reports ready;
-    // because the form is hidden, that never fires. Re-enable it manually.
-    var btn = form.querySelector('input[type="submit"], button[type="submit"]');
-    if (btn) {
-      btn.disabled = false;
-      btn.classList.remove('w-form-loading');
-    }
-    return sitekey;
-  }
-
-  function setTurnstileToken(tok) { turnstileToken = tok || null; }
-
-  function injectTurnstileToken() {
-    var form = document.getElementById('tax-calc-form');
-    if (!form || !turnstileToken) return;
-    var input = form.querySelector('input[name="cf-turnstile-response"]');
-    if (!input) {
-      input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'cf-turnstile-response';
-      form.appendChild(input);
-    }
-    input.value = turnstileToken;
-  }
-
-  function resetTurnstile() {
-    turnstileToken = null;
-    try {
-      if (window.turnstile && turnstileWidgetId !== null) {
-        window.turnstile.reset(turnstileWidgetId);
+      } else if (f.type === 'yesno') {
+        var btns = root.querySelectorAll('[data-fid="' + f.id + '"] [data-yn]');
+        for (var j = 0; j < btns.length; j++) {
+          btns[j].onclick = function () {
+            state.answers[f.id] = this.getAttribute('data-yn');
+            var sib = root.querySelectorAll('[data-fid="' + f.id + '"] [data-yn]');
+            for (var k = 0; k < sib.length; k++) sib[k].classList.remove('on');
+            this.classList.add('on');
+          };
+        }
+      } else if (f.type === 'occupation') {
+        wireCombo(f);
+      } else {
+        var input = root.querySelector('#fi-' + f.id);
+        if (!input) return;
+        input.oninput = function () {
+          if (f.type === 'tel') {
+            var cleaned = this.value.replace(/[^\d\s\-()+]/g, '');
+            if (cleaned !== this.value) this.value = cleaned;
+          }
+          state.answers[f.id] = this.value;
+          if (state.touched[f.id] || state.submitted) showErr(f.id, fieldError(f, this.value));
+        };
+        input.onblur = function () {
+          state.touched[f.id] = true;
+          state.answers[f.id] = this.value;
+          showErr(f.id, fieldError(f, this.value));
+        };
+        if (f.type === 'select' || f.type === 'date') {
+          input.onchange = function () {
+            state.answers[f.id] = this.value;
+            state.touched[f.id] = true;
+            showErr(f.id, fieldError(f, this.value));
+            if (stepHasDependent(step, f.id)) renderStep(step);
+          };
+        }
       }
-    } catch (e) {}
-  }
-
-  function renderTurnstileWidget(sitekey) {
-    if (!sitekey || !window.turnstile) return;
-    var mount = document.getElementById('ystc-turnstile');
-    if (!mount) return;
-    try {
-      turnstileWidgetId = window.turnstile.render(mount, {
-        sitekey: sitekey,
-        theme: 'dark',
-        size: 'flexible',
-        callback: function (token) { setTurnstileToken(token); },
-        'expired-callback': function () { setTurnstileToken(null); },
-        'error-callback':   function () { setTurnstileToken(null); }
-      });
-    } catch (e) {}
-  }
-
-  function setupTurnstile() {
-    var sitekey = readSitekeyFromForm();
-    if (!sitekey) return; // form doesn't use Turnstile, nothing to do
-    document.getElementById('ystc-turnstile').setAttribute('data-sitekey', sitekey);
-
-    if (window.turnstile) {
-      renderTurnstileWidget(sitekey);
-      return;
-    }
-
-    window.ystcTurnstileReady = function () { renderTurnstileWidget(sitekey); };
-
-    if (!document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]')) {
-      var s = document.createElement('script');
-      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=ystcTurnstileReady&render=explicit';
-      s.async = true;
-      s.defer = true;
-      document.head.appendChild(s);
-    }
-  }
-
-  /* ============================ INIT ============================ */
-
-  function init() {
-    injectUI();
-    if (!document.getElementById('ystc-root')) return; // markup not on page
-    setupCombo();
-    setupCollapsibles();
-    setupTurnstile();
-    loadState();
-    applyLang(); // also calls renderDeductions + calculate
-
-    ['ystc-year', 'ystc-residency',
-     'ystc-wages', 'ystc-interest', 'ystc-business', 'ystc-rental',
-     'ystc-paygw', 'ystc-instalments',
-     'ystc-help', 'ystc-medex', 'ystc-phi'
-    ].forEach(function (id) {
-      var el = $(id);
-      if (!el) return;
-      el.addEventListener('input',  calculate);
-      el.addEventListener('change', calculate);
     });
 
-    document.querySelectorAll('.ystc-lang').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        setLang(btn.getAttribute('data-lang'));
+    root.querySelector('#chk-back').onclick = function () {
+      state.step = state.step === 0 ? -1 : state.step - 1;
+      render(); scrollTop();
+    };
+    root.querySelector('#chk-next').onclick = function () {
+      var ok = true;
+      step.fields.forEach(function (f) {
+        if (f.type === 'checklist' || f.type === 'yesno' || !fieldVisible(f)) return;
+        state.touched[f.id] = true;
+        var msg = fieldError(f, state.answers[f.id]);
+        showErr(f.id, msg);
+        if (msg) ok = false;
+      });
+      if (!ok) return;
+      state.step += 1;
+      render(); scrollTop();
+    };
+  }
+
+  function scrollTop() {
+    try { root.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) {}
+  }
+
+  /* ---- review + submit ---------------------------------------------------- */
+  function renderReview() {
+    var html = '<div class="chk-card chk-review">' +
+      '<p class="chk-brand">' + esc(ui('brand')) + '</p>' +
+      '<h2 class="chk-step-title">' + esc(ui('reviewTitle')) + '</h2>' +
+      '<p class="chk-step-intro">' + esc(ui('reviewIntro')) + '</p>';
+
+    STEPS.forEach(function (step) {
+      html += '<h4>' + esc(tr(step.title)) + '</h4>';
+      step.fields.forEach(function (f) {
+        if (!fieldVisible(f)) return;
+        var disp = displayValue(f);
+        if (disp === '') return;
+        html += '<div class="chk-review-row"><b>' + esc(tr(f.label)) + '</b><span>' + esc(disp) + '</span></div>';
       });
     });
 
-    $('ystc-btn-primary').addEventListener('click',   function () { handleSubmit(true); });
-    $('ystc-btn-secondary').addEventListener('click', function () { handleSubmit(false); });
+    html += '<div class="chk-nav">' +
+      '<button class="chk-btn chk-btn-ghost" id="chk-back">' + esc(ui('back')) + '</button>' +
+      '<button class="chk-btn chk-btn-primary" id="chk-submit">' + esc(ui('submit')) + '</button></div></div>';
+    root.innerHTML = html;
+
+    root.querySelector('#chk-back').onclick = function () { state.step = STEPS.length - 1; render(); scrollTop(); };
+    root.querySelector('#chk-submit').onclick = doSubmit;
+  }
+
+  function displayValue(f) {
+    var val = state.answers[f.id];
+    if (f.type === 'occupation') { return val ? occLabel(val) : ''; }
+    if (f.type === 'checklist') {
+      if (!val) return '';
+      var names = [];
+      fieldOptions(f).forEach(function (o) { if (val[o.id]) names.push(tr(o.label)); });
+      return names.join(', ');
+    }
+    if (f.type === 'yesno') {
+      if (!val) return '';
+      return val === 'yes' ? ui('yes') : ui('no');
+    }
+    if (f.type === 'select') {
+      if (!val) return '';
+      var lab = '';
+      f.options.forEach(function (o) { if (o.id === val) lab = tr(o.label); });
+      return lab;
+    }
+    return (val || '').trim();
+  }
+
+  /* English value for the email to Sebastian (always English labels) */
+  function reportValue(f) {
+    var val = state.answers[f.id];
+    if (f.type === 'occupation') {
+      var oo = occByKey(val);
+      return oo ? oo.label.en : '';
+    }
+    if (f.type === 'checklist') {
+      if (!val) return '';
+      var names = [];
+      fieldOptions(f).forEach(function (o) { if (val[o.id]) names.push(o.label.en); });
+      return names.join(', ');
+    }
+    if (f.type === 'yesno') {
+      if (!val) return '';
+      return val === 'yes' ? 'Yes' : 'No';
+    }
+    if (f.type === 'select') {
+      if (!val) return '';
+      var lab = '';
+      f.options.forEach(function (o) { if (o.id === val) lab = o.label.en; });
+      return lab;
+    }
+    return (val || '').trim();
+  }
+
+  function sectionReport(step) {
+    var parts = [];
+    step.fields.forEach(function (f) {
+      if (!fieldVisible(f)) return;
+      var v = reportValue(f);
+      if (v === '') return;
+      parts.push(f.label.en + ': ' + v);
+    });
+    return parts.join(' | ');
+  }
+
+  function setHidden(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.value = value == null ? '' : value;
+  }
+
+  function stepById(id) {
+    for (var i = 0; i < STEPS.length; i++) { if (STEPS[i].id === id) return STEPS[i]; }
+    return null;
+  }
+  function countChecked(fieldId) {
+    var v = state.answers[fieldId]; if (!v) return 0;
+    var n = 0; for (var k in v) { if (v[k]) n++; } return n;
+  }
+  function optCount(stepId, fieldId) {
+    var s = stepById(stepId); if (!s) return 0;
+    for (var i = 0; i < s.fields.length; i++) {
+      if (s.fields[i].id === fieldId) return (s.fields[i].options || []).length;
+    }
+    return 0;
+  }
+
+  /* Maps checklist data into the duplicated PSI form's registered fields, then
+     programmatically submits that form so Webflow records and emails it. */
+  function doSubmit() {
+    var langName = { en: 'English', es: 'Spanish', pt: 'Portuguese' }[state.lang] || 'English';
+
+    var incCount = countChecked('inc_items');
+    var dedCount = countChecked('ded_items');
+    var docCount = countChecked('doc_items');
+    var docTotal = optCount('documents', 'doc_items');
+
+    setHidden('psi-full-name', state.answers.book_name || '');
+    setHidden('psi-email', state.answers.book_email || '');
+    setHidden('psi-phone', state.answers.c_phone || '');
+    setHidden('psi-language', langName);
+    setHidden('psi-verdict-title', 'Individual Tax Return Checklist');
+    setHidden('psi-verdict-text',
+      'Income: ' + incCount + ' types | Deductions: ' + dedCount +
+      ' | Documents ready: ' + docCount + '/' + docTotal);
+
+    setHidden('psi-findings',
+      'PERSONAL --- ' + sectionReport(stepById('personal')) +
+      ' --- INCOME --- ' + sectionReport(stepById('income')) +
+      ' --- DEDUCTIONS --- ' + sectionReport(stepById('deductions')));
+
+    var notes = state.answers.c_comments ? ('Notes: ' + state.answers.c_comments) : '';
+    setHidden('psi-answers',
+      'BOOKING EMAIL --- ' + (state.answers.book_email || '') +
+      ' --- OFFSETS --- ' + sectionReport(stepById('offsets')) +
+      ' --- DOCUMENTS --- ' + sectionReport(stepById('documents')) +
+      (notes ? ' --- CLIENT NOTES --- ' + notes : ''));
+
+    setHidden('psi-comments', state.answers.c_comments || '');
+
+    /* Set the form's display name so the notification email subject reads
+       "Checklist - <client name>" instead of the inherited "PSI Assessment". */
+    var subjForm = document.getElementById('wf-psi-form');
+    if (subjForm) {
+      var clientName = (state.answers.book_name || '').trim() || 'Client';
+      subjForm.setAttribute('name', 'Checklist - ' + clientName);
+      subjForm.setAttribute('data-name', 'Checklist - ' + clientName);
+    }
+
+    var btn = root.querySelector('#chk-submit');
+    if (btn) { btn.textContent = ui('sending'); btn.disabled = true; }
+
+    var submitBtn = document.getElementById('psi-submit-btn');
+    if (submitBtn) {
+      state.submitted = true;
+      submitBtn.click();
+      setTimeout(function () { render(); scrollTop(); }, 350);
+    } else {
+      if (btn) { btn.textContent = ui('submit'); btn.disabled = false; }
+      alert('Submission form not found. Please contact us directly.');
+    }
+  }
+
+  function renderThanks() {
+    root.innerHTML = '<div class="chk-card"><div class="chk-thanks">' +
+      '<div class="ico">&#10003;</div>' +
+      '<h2>' + esc(ui('thanksTitle')) + '</h2>' +
+      '<p class="chk-intro">' + esc(ui('thanksText')) + '</p></div>' +
+      '<p class="chk-priv">Y&S Accounting - taxbne.com.au</p></div>';
+  }
+
+  /* ---- boot --------------------------------------------------------------- */
+  function boot() {
+    root = document.getElementById('psi-app');
+    if (!root) return;
+    injectStyles();
+    state.step = -1; // language picker first
+    render();
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', boot);
   } else {
-    init();
+    boot();
   }
 })();
