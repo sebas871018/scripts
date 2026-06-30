@@ -267,8 +267,6 @@
           label: L('Do you have a HECS, HELP or student loan debt?', 'Tienes deuda HECS, HELP o de prestamo estudiantil?', 'Voce tem divida HECS, HELP ou de emprestimo estudantil?') },
         { id: 'off_medicare', type: 'yesno', opt: true,
           label: L('Do you have a Medicare levy exemption or reduction?', 'Tienes exencion o reduccion del Medicare levy?', 'Voce tem isencao ou reducao do Medicare levy?') },
-        { id: 'off_overseas', type: 'yesno', opt: true,
-          label: L('Did you spend time living or working overseas this year?', 'Pasaste tiempo viviendo o trabajando en el extranjero este ano?', 'Voce passou tempo morando ou trabalhando no exterior este ano?') },
         { id: 'off_notes', type: 'textarea', opt: true,
           label: L('Anything else about offsets or your situation', 'Algo mas sobre compensaciones o tu situacion', 'Algo mais sobre abatimentos ou sua situacao') }
       ]
@@ -284,9 +282,6 @@
         { id: 'doc_items', type: 'checklist',
           label: L('Documents ready', 'Documentos listos', 'Documentos prontos'),
           options: [
-            { id: 'id', label: L('Photo ID (driver licence or passport)', 'Identificacion con foto (licencia o pasaporte)', 'Documento com foto (carteira ou passaporte)') },
-            { id: 'tfn', label: L('Tax File Number (or confirm it is on file)', 'Tax File Number (o confirmar que esta en archivo)', 'Tax File Number (ou confirmar que esta no arquivo)') },
-            { id: 'bank', label: L('Bank account details for your refund', 'Datos bancarios para tu reembolso', 'Dados bancarios para sua restituicao') },
             { id: 'lastreturn', label: L('Last year tax return (new clients)', 'Declaracion del ano pasado (clientes nuevos)', 'Declaracao do ano passado (clientes novos)') },
             { id: 'payg', label: L('PAYG income statements or payment summaries', 'PAYG income statements o payment summaries', 'PAYG income statements ou payment summaries') },
             { id: 'interest', label: L('Bank interest summary', 'Resumen de intereses bancarios', 'Resumo de juros bancarios') },
@@ -304,12 +299,10 @@
     {
       id: 'contact',
       title: L('Anything else', 'Algo mas', 'Mais alguma coisa'),
-      intro: L('A phone number and any notes help us prepare. The rest is optional.',
-               'Un numero de telefono y cualquier nota nos ayudan a prepararnos. El resto es opcional.',
-               'Um numero de telefone e qualquer observacao nos ajudam a preparar. O resto e opcional.'),
+      intro: L('Add anything that would help us prepare. This is optional.',
+               'Agrega cualquier cosa que nos ayude a prepararnos. Esto es opcional.',
+               'Adicione qualquer coisa que nos ajude a preparar. Isto e opcional.'),
       fields: [
-        { id: 'c_phone', type: 'tel', opt: true,
-          label: L('Phone number', 'Numero de telefono', 'Numero de telefone') },
         { id: 'c_comments', type: 'textarea', opt: true,
           label: L('Anything else we should know', 'Algo mas que debamos saber', 'Algo mais que devemos saber') }
       ]
