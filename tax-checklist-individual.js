@@ -46,6 +46,8 @@
       idReminder: 'This is step 2. If you have not completed step 1 (the ID verification form), please [LINK]complete it here[/LINK] first.',
       bookEmailLabel: 'Email used to book your appointment',
       bookEmailHelp: 'Enter the same email you used when booking, so we can match this checklist to your appointment.',
+      occSearch: 'Start typing to search (e.g. nurse, builder, IT)',
+      occEmpty: 'No matching occupations',
       langLabel: 'Choose your language',
       start: 'Start checklist',
       back: 'Back',
@@ -74,6 +76,8 @@
       idReminder: 'Este es el paso 2. Si aun no completaste el paso 1 (el formulario de verificacion de identidad), por favor [LINK]completalo aqui[/LINK] primero.',
       bookEmailLabel: 'Correo que usaste para reservar tu cita',
       bookEmailHelp: 'Ingresa el mismo correo que usaste al reservar, para vincular esta lista con tu cita.',
+      occSearch: 'Escribe para buscar (p. ej. enfermera, constructor, TI)',
+      occEmpty: 'No hay ocupaciones coincidentes',
       langLabel: 'Elige tu idioma',
       start: 'Comenzar',
       back: 'Atras',
@@ -102,6 +106,8 @@
       idReminder: 'Esta e a etapa 2. Se voce ainda nao concluiu a etapa 1 (o formulario de verificacao de identidade), por favor [LINK]conclua aqui[/LINK] primeiro.',
       bookEmailLabel: 'E-mail usado para agendar sua consulta',
       bookEmailHelp: 'Informe o mesmo e-mail que voce usou ao agendar, para vincularmos esta lista a sua consulta.',
+      occSearch: 'Comece a digitar para buscar (ex. enfermeiro, pedreiro, TI)',
+      occEmpty: 'Nenhuma ocupacao encontrada',
       langLabel: 'Escolha seu idioma',
       start: 'Comecar',
       back: 'Voltar',
@@ -155,11 +161,42 @@
       ]
     },
     {
+      id: 'income',
+      title: L('Income you received', 'Ingresos que recibiste', 'Rendimentos que voce recebeu'),
+      intro: L('Tick every type of income you had during the financial year.',
+               'Marca cada tipo de ingreso que tuviste durante el ano fiscal.',
+               'Marque cada tipo de rendimento que voce teve durante o ano fiscal.'),
+      fields: [
+        { id: 'inc_items', type: 'checklist',
+          label: L('Income types', 'Tipos de ingreso', 'Tipos de rendimento'),
+          options: [
+            { id: 'salary', label: L('Salary or wages (PAYG income statement)', 'Salario o sueldo (PAYG income statement)', 'Salario ou ordenado (PAYG income statement)') },
+            { id: 'govt', label: L('Government payments (Centrelink, pension, JobSeeker, parental leave)', 'Pagos del gobierno (Centrelink, pension, JobSeeker, licencia parental)', 'Pagamentos do governo (Centrelink, pensao, JobSeeker, licenca parental)') },
+            { id: 'interest', label: L('Bank interest', 'Intereses bancarios', 'Juros bancarios') },
+            { id: 'dividends', label: L('Dividends from Australian shares', 'Dividendos de acciones australianas', 'Dividendos de acoes australianas') },
+            { id: 'managed', label: L('Managed fund or ETF distributions', 'Distribuciones de fondos o ETF', 'Distribuicoes de fundos ou ETF') },
+            { id: 'trust', label: L('Trust or partnership distributions', 'Distribuciones de fideicomiso o sociedad', 'Distribuicoes de trust ou sociedade') },
+            { id: 'rental', label: L('Rental property income', 'Ingresos por alquiler de propiedad', 'Renda de imovel alugado') },
+            { id: 'cgt', label: L('Capital gains (sold shares, property, crypto or other assets)', 'Ganancias de capital (venta de acciones, propiedad, cripto u otros bienes)', 'Ganhos de capital (venda de acoes, imovel, cripto ou outros bens)') },
+            { id: 'crypto', label: L('Cryptocurrency activity', 'Actividad con criptomonedas', 'Atividade com criptomoedas') },
+            { id: 'business', label: L('Business or sole trader income (ABN)', 'Ingresos de negocio o autonomo (ABN)', 'Renda de negocio ou autonomo (ABN)') },
+            { id: 'contractor', label: L('Contractor or personal services income', 'Ingresos como contratista o servicios personales', 'Renda como prestador de servicos') },
+            { id: 'foreign', label: L('Foreign income (overseas wages, pension or investments)', 'Ingresos del extranjero (sueldos, pension o inversiones)', 'Rendimentos do exterior (salarios, pensao ou investimentos)') }
+          ] },
+        { id: 'inc_notes', type: 'textarea', opt: true,
+          label: L('Other income or notes', 'Otros ingresos o notas', 'Outros rendimentos ou observacoes') }
+      ]
+    },
+
+    {
       id: 'personal',
       title: L('Your details', 'Tus datos', 'Seus dados'),
       fields: [
-        { id: 'pd_occupation', type: 'text', opt: true,
-          label: L('Occupation', 'Ocupacion', 'Ocupacao') },
+        { id: 'pd_occupation', type: 'occupation', opt: true,
+          label: L('Occupation', 'Ocupacion', 'Ocupacao'),
+          help: L('Start typing to search. We will show deductions commonly claimed in your role.',
+                  'Empieza a escribir para buscar. Mostraremos las deducciones comunes de tu profesion.',
+                  'Comece a digitar para buscar. Mostraremos as deducoes comuns da sua profissao.') },
         { id: 'pd_newclient', type: 'yesno', opt: true,
           label: L('Are you a new client?', 'Eres cliente nuevo?', 'Voce e cliente novo?') },
         { id: 'pd_status', type: 'select', opt: true,
@@ -197,56 +234,14 @@
     },
 
     {
-      id: 'income',
-      title: L('Income you received', 'Ingresos que recibiste', 'Rendimentos que voce recebeu'),
-      intro: L('Tick every type of income you had during the financial year.',
-               'Marca cada tipo de ingreso que tuviste durante el ano fiscal.',
-               'Marque cada tipo de rendimento que voce teve durante o ano fiscal.'),
-      fields: [
-        { id: 'inc_items', type: 'checklist',
-          label: L('Income types', 'Tipos de ingreso', 'Tipos de rendimento'),
-          options: [
-            { id: 'salary', label: L('Salary or wages (PAYG income statement)', 'Salario o sueldo (PAYG income statement)', 'Salario ou ordenado (PAYG income statement)') },
-            { id: 'govt', label: L('Government payments (Centrelink, pension, JobSeeker, parental leave)', 'Pagos del gobierno (Centrelink, pension, JobSeeker, licencia parental)', 'Pagamentos do governo (Centrelink, pensao, JobSeeker, licenca parental)') },
-            { id: 'interest', label: L('Bank interest', 'Intereses bancarios', 'Juros bancarios') },
-            { id: 'dividends', label: L('Dividends from Australian shares', 'Dividendos de acciones australianas', 'Dividendos de acoes australianas') },
-            { id: 'managed', label: L('Managed fund or ETF distributions', 'Distribuciones de fondos o ETF', 'Distribuicoes de fundos ou ETF') },
-            { id: 'trust', label: L('Trust or partnership distributions', 'Distribuciones de fideicomiso o sociedad', 'Distribuicoes de trust ou sociedade') },
-            { id: 'rental', label: L('Rental property income', 'Ingresos por alquiler de propiedad', 'Renda de imovel alugado') },
-            { id: 'cgt', label: L('Capital gains (sold shares, property, crypto or other assets)', 'Ganancias de capital (venta de acciones, propiedad, cripto u otros bienes)', 'Ganhos de capital (venda de acoes, imovel, cripto ou outros bens)') },
-            { id: 'crypto', label: L('Cryptocurrency activity', 'Actividad con criptomonedas', 'Atividade com criptomoedas') },
-            { id: 'business', label: L('Business or sole trader income (ABN)', 'Ingresos de negocio o autonomo (ABN)', 'Renda de negocio ou autonomo (ABN)') },
-            { id: 'contractor', label: L('Contractor or personal services income', 'Ingresos como contratista o servicios personales', 'Renda como prestador de servicos') },
-            { id: 'foreign', label: L('Foreign income (overseas wages, pension or investments)', 'Ingresos del extranjero (sueldos, pension o inversiones)', 'Rendimentos do exterior (salarios, pensao ou investimentos)') }
-          ] },
-        { id: 'inc_notes', type: 'textarea', opt: true,
-          label: L('Other income or notes', 'Otros ingresos o notas', 'Outros rendimentos ou observacoes') }
-      ]
-    },
-
-    {
       id: 'deductions',
       title: L('Deductions you may claim', 'Deducciones que podrias reclamar', 'Deducoes que voce pode reivindicar'),
-      intro: L('Tick every expense you think you can claim. You will need records or receipts for these.',
-               'Marca cada gasto que crees que puedes reclamar. Necesitaras registros o recibos.',
-               'Marque cada despesa que voce acha que pode reivindicar. Sera preciso ter comprovantes.'),
+      intro: L('Based on your occupation, here are deductions you may be able to claim. Tick the ones that apply - you will need records or receipts.',
+               'Segun tu ocupacion, estas son las deducciones que podrias reclamar. Marca las que apliquen - necesitaras registros o recibos.',
+               'Com base na sua ocupacao, estas sao as deducoes que voce pode reivindicar. Marque as que se aplicam - sera preciso ter comprovantes.'),
       fields: [
-        { id: 'ded_items', type: 'checklist',
-          label: L('Deduction types', 'Tipos de deduccion', 'Tipos de deducao'),
-          options: [
-            { id: 'wfh', label: L('Working from home', 'Trabajo desde casa', 'Trabalho em casa') },
-            { id: 'car', label: L('Car or vehicle use for work', 'Uso de auto o vehiculo para el trabajo', 'Uso de carro ou veiculo para o trabalho') },
-            { id: 'travel', label: L('Other work-related travel', 'Otros viajes relacionados con el trabajo', 'Outras viagens a trabalho') },
-            { id: 'clothing', label: L('Uniforms, protective clothing and laundry', 'Uniformes, ropa protectora y lavanderia', 'Uniformes, roupas de protecao e lavanderia') },
-            { id: 'tools', label: L('Tools, equipment and technology', 'Herramientas, equipo y tecnologia', 'Ferramentas, equipamentos e tecnologia') },
-            { id: 'education', label: L('Self-education or professional development', 'Autoeducacion o desarrollo profesional', 'Autoeducacao ou desenvolvimento profissional') },
-            { id: 'phone', label: L('Phone and internet', 'Telefono e internet', 'Telefone e internet') },
-            { id: 'union', label: L('Union fees, memberships and subscriptions', 'Cuotas sindicales, membresias y suscripciones', 'Sindicato, associacoes e assinaturas') },
-            { id: 'income_prot', label: L('Income protection insurance (outside super)', 'Seguro de proteccion de ingresos (fuera del super)', 'Seguro de protecao de renda (fora do super)') },
-            { id: 'donations', label: L('Donations to registered charities', 'Donaciones a organizaciones beneficas registradas', 'Doacoes a instituicoes registradas') },
-            { id: 'investment', label: L('Investment expenses (loan interest, fees)', 'Gastos de inversion (intereses de prestamo, comisiones)', 'Despesas de investimento (juros de emprestimo, taxas)') },
-            { id: 'super', label: L('Personal super contributions (notice of intent to claim)', 'Aportes personales al super (aviso de intencion de reclamar)', 'Contribuicoes pessoais ao super (aviso de intencao)') }
-          ] },
+        { id: 'ded_items', type: 'checklist', dynamic: 'occ_deductions',
+          label: L('Deductions that may apply to you', 'Deducciones que podrian aplicarte', 'Deducoes que podem se aplicar a voce') },
         { id: 'ded_notes', type: 'textarea', opt: true,
           label: L('Other deductions or notes', 'Otras deducciones o notas', 'Outras deducoes ou observacoes') }
       ]
@@ -309,6 +304,113 @@
     }
   ];
 
+  /* ---- Occupation list + occupation-aware deductions (ported from tax-calculator.js) ---- */
+  var BASE_DEDUCTIONS = ['wfh','vehicle','phone','union','self_education','donations','taxagent','income_protect','investment','super'];
+
+  var DED_LABELS = {
+    wfh: L('Working from home','Trabajo desde casa','Trabalho em casa'),
+    vehicle: L('Work-related car or travel','Coche o viajes laborales','Carro ou viagens de trabalho'),
+    phone: L('Phone & internet (work portion)','Telefono e internet (parte laboral)','Telefone e internet (parte de trabalho)'),
+    union: L('Union & professional fees','Cuotas sindicales y profesionales','Sindicato e taxas profissionais'),
+    self_education: L('Self-education','Formacion profesional','Educacao profissional'),
+    donations: L('Donations (DGR charities)','Donaciones (entidades DGR)','Doacoes (entidades DGR)'),
+    taxagent: L('Tax agent fees','Honorarios del asesor fiscal','Honorarios do contador fiscal'),
+    income_protect: L('Income protection insurance','Seguro de proteccion de ingresos','Seguro de protecao de renda'),
+    investment: L('Investment expenses (loan interest, fees)','Gastos de inversion (intereses, comisiones)','Despesas de investimento (juros, taxas)'),
+    super: L('Personal super contributions','Aportes personales al super','Contribuicoes pessoais ao super'),
+    uniform: L('Uniform / protective clothing','Uniforme / ropa de proteccion','Uniforme / roupa de protecao'),
+    tools: L('Tools & equipment','Herramientas y equipo','Ferramentas e equipamentos'),
+    ppe: L('PPE (boots, gloves, goggles)','EPI (botas, guantes, gafas)','EPI (botas, luvas, oculos)'),
+    sunscreen: L('Sun protection','Proteccion solar','Protecao solar'),
+    teaching_materials: L('Teaching materials','Material didactico','Material didatico'),
+    excursions: L('Excursions / camps','Excursiones / campamentos','Excursoes / acampamentos'),
+    first_aid: L('First aid training','Formacion en primeros auxilios','Treinamento em primeiros socorros'),
+    ahpra: L('AHPRA registration','Inscripcion AHPRA','Registro AHPRA'),
+    cpd: L('CPD / professional development','CPD / desarrollo profesional','CPD / desenvolvimento profissional'),
+    stethoscope: L('Medical / nursing equipment','Equipo medico / de enfermeria','Equipamento medico / de enfermagem'),
+    software: L('Software / subscriptions','Software / suscripciones','Software / assinaturas'),
+    hardware: L('Computer equipment','Equipo informatico','Equipamento de informatica'),
+    conferences: L('Conferences / events','Congresos / eventos','Congressos / eventos'),
+    prof_dev: L('Professional development','Desarrollo profesional','Desenvolvimento profissional'),
+    office_supplies: L('Office supplies / stationery','Material de oficina / papeleria','Material de escritorio / papelaria'),
+    advertising: L('Advertising & marketing','Publicidad y marketing','Publicidade e marketing'),
+    license: L('Licence & registration fees','Licencias y tasas de inscripcion','Licencas e taxas de registro'),
+    overnight_meals: L('Overnight travel / meals','Viajes con pernocta / comidas','Viagens com pernoite / refeicoes'),
+    truck_supplies: L('Truck cleaning & supplies','Limpieza y suministros del camion','Limpeza e suprimentos do caminhao'),
+    rsa: L('RSA / industry certificates','RSA / certificados sectoriales','RSA / certificados do setor'),
+    training: L('Role-specific training','Formacion especifica del puesto','Treinamento especifico da funcao'),
+    insurance: L('Professional indemnity','Responsabilidad civil profesional','Responsabilidade civil profissional'),
+    practice_cert: L('Practising certificate','Certificado para ejercer','Certificado de exercicio profissional'),
+    legal_pubs: L('Legal publications','Publicaciones juridicas','Publicacoes juridicas'),
+    tpb: L('TPB registration fees','Tasas de inscripcion TPB','Taxas de registro TPB'),
+    cpa_fees: L('CPA / CA / IPA fees','Cuotas CPA / CA / IPA','Anuidades CPA / CA / IPA'),
+    journals: L('Industry journals','Revistas del sector','Revistas do setor'),
+    indemnity_insurance: L('Medical indemnity insurance','Seguro de responsabilidad medica','Seguro de responsabilidade medica'),
+    medical_journals: L('Medical journals','Revistas medicas','Revistas medicas'),
+    equipment: L('Professional equipment','Equipo profesional','Equipamento profissional'),
+    laptop: L('Laptop / work device','Portatil / dispositivo laboral','Laptop / dispositivo de trabalho'),
+    client_meals: L('Client travel & meetings','Viajes y reuniones con clientes','Viagens e reunioes com clientes'),
+    fitness: L('Fitness / conditioning','Acondicionamiento fisico','Condicionamento fisico')
+  };
+
+  var OCCUPATIONS = [
+    { key:'accountant', extras:['cpd','tpb','cpa_fees','journals'], label:L('Accounting / finance professional','Contabilidad / finanzas','Contabilidade / financas') },
+    { key:'adult_industry', extras:['uniform','ppe','self_education'], label:L('Adult industry worker','Trabajador de la industria adulta','Trabalhador da industria adulta') },
+    { key:'agricultural', extras:['ppe','sunscreen','tools','uniform'], label:L('Agricultural / farm worker','Trabajador agricola','Trabalhador agricola') },
+    { key:'apprentice', extras:['tools','ppe','self_education'], label:L('Apprentice or trainee','Aprendiz o practicante','Aprendiz ou estagiario') },
+    { key:'adf', extras:['uniform','fitness','prof_dev'], label:L('Australian Defence Force member','Miembro de las Fuerzas de Defensa','Membro das Forcas de Defesa') },
+    { key:'construction', extras:['tools','ppe','uniform','sunscreen'], label:L('Building / construction worker','Trabajador de construccion','Trabalhador da construcao civil') },
+    { key:'bus', extras:['license','uniform','sunscreen'], label:L('Bus driver','Conductor de autobus','Motorista de onibus') },
+    { key:'callcentre', extras:['prof_dev','office_supplies'], label:L('Call centre operator','Operador de call center','Operador de call center') },
+    { key:'cleaner', extras:['ppe','uniform','sunscreen'], label:L('Cleaner','Personal de limpieza','Profissional de limpeza') },
+    { key:'community', extras:['uniform','ppe','self_education'], label:L('Community / disability support worker','Trabajador de apoyo comunitario','Trabalhador de apoio comunitario') },
+    { key:'contractor', extras:['insurance','software','tools','laptop'], label:L('Contractor / sole trader','Contratista / autonomo','Contratante / autonomo') },
+    { key:'medical', extras:['ahpra','cpd','indemnity_insurance','medical_journals','equipment'], label:L('Doctor / medical specialist','Medico / especialista','Medico / especialista') },
+    { key:'engineer', extras:['prof_dev','software','conferences','hardware'], label:L('Engineer','Ingeniero','Engenheiro') },
+    { key:'factory', extras:['ppe','uniform','tools'], label:L('Factory / production worker','Trabajador de fabrica','Trabalhador de fabrica') },
+    { key:'firefighter', extras:['uniform','fitness','prof_dev'], label:L('Firefighter','Bombero','Bombeiro') },
+    { key:'fitness_ind', extras:['uniform','prof_dev','equipment'], label:L('Fitness / sporting industry employee','Industria del fitness / deportiva','Industria fitness / esportiva') },
+    { key:'flight', extras:['uniform','self_education','prof_dev'], label:L('Flight attendant','Auxiliar de vuelo','Comissario de bordo') },
+    { key:'gaming', extras:['uniform','rsa','training'], label:L('Gaming attendant','Empleado de casino','Atendente de cassino') },
+    { key:'guards', extras:['uniform','license','prof_dev'], label:L('Guard / security officer','Guardia / agente de seguridad','Vigilante / agente de seguranca') },
+    { key:'beauty', extras:['tools','uniform','training'], label:L('Hairdresser / beauty therapist','Peluquero / esteticista','Cabeleireiro / esteticista') },
+    { key:'hospitality', extras:['uniform','rsa','training'], label:L('Hospitality / food service worker','Hosteleria / servicio de comida','Hotelaria / servico de alimentacao') },
+    { key:'it', extras:['software','hardware','conferences','prof_dev'], label:L('IT / technology professional','Profesional de TI / tecnologia','Profissional de TI / tecnologia') },
+    { key:'lawyer', extras:['cpd','practice_cert','legal_pubs'], label:L('Lawyer / legal professional','Abogado / profesional juridico','Advogado / profissional juridico') },
+    { key:'meat', extras:['ppe','uniform','tools'], label:L('Meat / food processing worker','Trabajador procesamiento de carne / alimentos','Trabalhador de processamento de carne / alimentos') },
+    { key:'media', extras:['prof_dev','equipment'], label:L('Media / journalism professional','Profesional de medios / periodismo','Profissional de midia / jornalismo') },
+    { key:'mining', extras:['ppe','uniform','sunscreen','prof_dev'], label:L('Mining site employee','Empleado de mineria','Trabalhador de mineracao') },
+    { key:'nurse', extras:['uniform','ahpra','cpd','stethoscope','prof_dev'], label:L('Nurse / midwife','Enfermero / matrona','Enfermeiro / parteira') },
+    { key:'general', extras:['office_supplies','prof_dev'], label:L('Office / administration worker','Oficina / administracion','Escritorio / administracao') },
+    { key:'paramedic', extras:['uniform','ahpra','cpd','equipment'], label:L('Paramedic','Paramedico','Paramedico') },
+    { key:'performing', extras:['prof_dev','tools','uniform'], label:L('Performing artist','Artista escenico','Artista cenico') },
+    { key:'pilot', extras:['uniform','license','prof_dev'], label:L('Pilot','Piloto','Piloto') },
+    { key:'police', extras:['uniform','fitness','prof_dev','equipment'], label:L('Police officer','Agente de policia','Policial') },
+    { key:'sportsperson', extras:['prof_dev','equipment','fitness'], label:L('Professional sportsperson','Deportista profesional','Atleta profissional') },
+    { key:'realestate', extras:['advertising','license','prof_dev'], label:L('Real estate agent','Agente inmobiliario','Corretor de imoveis') },
+    { key:'recruitment', extras:['prof_dev','client_meals'], label:L('Recruitment consultant','Consultor de seleccion','Consultor de recrutamento') },
+    { key:'retail', extras:['uniform','training'], label:L('Retail worker','Empleado de comercio','Trabalhador de varejo') },
+    { key:'sales', extras:['client_meals','laptop','prof_dev'], label:L('Sales representative','Representante de ventas','Representante de vendas') },
+    { key:'teacher', extras:['teaching_materials','excursions','first_aid','prof_dev'], label:L('Teacher / educator','Profesor / educador','Professor / educador') },
+    { key:'tradie', extras:['tools','ppe','uniform','sunscreen'], label:L('Tradesperson','Oficio / trabajador especializado','Profissional de oficio / tecnico') },
+    { key:'train', extras:['uniform','license','prof_dev'], label:L('Train driver','Maquinista de tren','Maquinista de trem') },
+    { key:'travel', extras:['prof_dev','software'], label:L('Travel agent','Agente de viajes','Agente de viagens') },
+    { key:'truckdriver', extras:['overnight_meals','truck_supplies','sunscreen'], label:L('Truck driver','Camionero','Caminhoneiro') },
+    { key:'other', extras:[], label:L('Other occupation','Otra ocupacion','Outra ocupacao') }
+  ];
+
+  function occByKey(k){ for (var i=0;i<OCCUPATIONS.length;i++){ if (OCCUPATIONS[i].key===k) return OCCUPATIONS[i]; } return null; }
+  function occLabel(k){ var o=occByKey(k); return o ? tr(o.label) : ''; }
+  function occSorted(){ return OCCUPATIONS.slice().sort(function(a,b){ return tr(a.label).localeCompare(tr(b.label)); }); }
+  function dedOptionsForOccupation(){
+    var occ = occByKey(state.answers.pd_occupation);
+    var keys = BASE_DEDUCTIONS.concat(occ ? occ.extras : []);
+    var seen = {}, out = [];
+    keys.forEach(function(k){ if (!seen[k] && DED_LABELS[k]) { seen[k] = true; out.push({ id:k, label:DED_LABELS[k] }); } });
+    return out;
+  }
+  function fieldOptions(f){ return f.dynamic === 'occ_deductions' ? dedOptionsForOccupation() : (f.options || []); }
+
   /* ---- validation --------------------------------------------------------- */
   var RE_NAME = /^[a-zA-ZÀ-ɏḀ-ỿ\s\-'.]+$/;
   var RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -368,6 +470,13 @@
       '#psi-app .chk-note{font-size:13px;line-height:1.5;color:#3a4654;background:var(--cream);border:1px solid #efe4c9;border-radius:10px;padding:11px 14px;margin:0 0 20px;}',
       '#psi-app .chk-link{color:var(--gold2);font-weight:700;text-decoration:underline;}',
       '#psi-app .chk-help{font-size:12.5px;color:var(--mut);margin:0 0 8px;line-height:1.45;}',
+      '#psi-app .chk-combo{position:relative;}',
+      '#psi-app .chk-combo-list{display:none;position:absolute;left:0;right:0;top:calc(100% - 1px);z-index:60;list-style:none;margin:0;padding:5px;background:#fff;border:1.5px solid var(--navy);border-radius:0 0 10px 10px;max-height:280px;overflow-y:auto;box-shadow:0 12px 28px rgba(11,42,74,.16);}',
+      '#psi-app .chk-combo-opt{padding:10px 12px;border-radius:7px;cursor:pointer;font-size:14.5px;color:var(--ink);}',
+      '#psi-app .chk-combo-opt:hover,#psi-app .chk-combo-opt.active{background:var(--cream);}',
+      '#psi-app .chk-combo-opt.sel{font-weight:700;color:var(--navy);}',
+      '#psi-app .chk-combo-opt mark{background:#f5e6bf;color:inherit;border-radius:2px;padding:0 1px;}',
+      '#psi-app .chk-combo-empty{padding:10px 12px;color:var(--mut);font-size:14px;}',
       '#psi-app .chk-field{margin:0 0 18px;}',
       '#psi-app .chk-label{display:block;font-size:14px;font-weight:600;color:var(--navy);margin:0 0 8px;}',
       '#psi-app .chk-opt-tag{font-weight:400;color:var(--mut);font-size:12px;}',
@@ -492,14 +601,23 @@
     var h = '<div class="chk-field" data-fid="' + f.id + '">';
 
     if (f.type === 'checklist') {
-      h += '<label class="chk-label">' + esc(tr(f.label)) + '</label>';
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>';
+      if (f.help) h += '<p class="chk-help">' + esc(tr(f.help)) + '</p>';
       var sel = val || {};
-      f.options.forEach(function (o) {
+      fieldOptions(f).forEach(function (o) {
         var on = !!sel[o.id];
         h += '<label class="chk-check' + (on ? ' on' : '') + '" data-opt="' + o.id + '">' +
           '<input type="checkbox"' + (on ? ' checked' : '') + '>' +
           '<span>' + esc(tr(o.label)) + '</span></label>';
       });
+    } else if (f.type === 'occupation') {
+      var selLabel = val ? occLabel(val) : '';
+      h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        (f.help ? '<p class="chk-help">' + esc(tr(f.help)) + '</p>' : '') +
+        '<div class="chk-combo" data-fid="' + f.id + '">' +
+          '<input class="chk-input chk-combo-input" id="fi-' + f.id + '" autocomplete="off" placeholder="' + esc(ui('occSearch')) + '" value="' + esc(selLabel) + '">' +
+          '<ul class="chk-combo-list" id="cl-' + f.id + '"></ul>' +
+        '</div>';
     } else if (f.type === 'yesno') {
       h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label><div class="chk-yn">' +
         '<button type="button" data-yn="yes" class="' + (val === 'yes' ? 'on' : '') + '">' + esc(ui('yes')) + '</button>' +
@@ -532,6 +650,56 @@
     if (input) { if (msg) input.classList.add('chk-invalid'); else input.classList.remove('chk-invalid'); }
   }
 
+  /* Searchable occupation combobox: filters OCCUPATIONS as you type, stores the
+     selected occupation KEY in state.answers[f.id] (not the typed text). */
+  function wireCombo(f) {
+    var input = root.querySelector('#fi-' + f.id);
+    var list = root.querySelector('#cl-' + f.id);
+    if (!input || !list) return;
+    var active = -1, filtered = [];
+    function hl(label, q) {
+      if (!q) return esc(label);
+      var lo = label.toLowerCase(), i = lo.indexOf(q);
+      if (i < 0) return esc(label);
+      return esc(label.slice(0, i)) + '<mark>' + esc(label.slice(i, i + q.length)) + '</mark>' + esc(label.slice(i + q.length));
+    }
+    function renderList(qraw) {
+      var q = (qraw || '').trim().toLowerCase();
+      filtered = occSorted();
+      if (q) filtered = filtered.filter(function (o) { return tr(o.label).toLowerCase().indexOf(q) !== -1; });
+      if (!filtered.length) { list.innerHTML = '<li class="chk-combo-empty">' + esc(ui('occEmpty')) + '</li>'; return; }
+      list.innerHTML = filtered.map(function (o, i) {
+        var cls = 'chk-combo-opt' + (o.key === state.answers[f.id] ? ' sel' : '') + (i === active ? ' active' : '');
+        return '<li class="' + cls + '" data-key="' + o.key + '">' + hl(tr(o.label), q) + '</li>';
+      }).join('');
+    }
+    function open() { list.style.display = 'block'; }
+    function close() { list.style.display = 'none'; }
+    function restore() { input.value = state.answers[f.id] ? occLabel(state.answers[f.id]) : ''; }
+    function pick(key) {
+      if (!occByKey(key)) return;
+      state.answers[f.id] = key;
+      restore();
+      close();
+    }
+    input.onfocus = function () { active = -1; renderList(''); open(); this.select(); };
+    input.oninput = function () { active = 0; renderList(this.value); open(); };
+    input.onkeydown = function (e) {
+      var n = filtered.length;
+      if (e.key === 'ArrowDown') { e.preventDefault(); active = active < 0 ? 0 : Math.min(active + 1, n - 1); renderList(input.value); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(active - 1, 0); renderList(input.value); }
+      else if (e.key === 'Enter') { if (active >= 0 && filtered[active]) { e.preventDefault(); pick(filtered[active].key); } }
+      else if (e.key === 'Escape') { restore(); close(); input.blur(); }
+    };
+    list.onmousedown = function (e) {
+      var li = e.target && e.target.closest ? e.target.closest('li[data-key]') : null;
+      if (!li) return;
+      e.preventDefault();
+      pick(li.getAttribute('data-key'));
+    };
+    input.onblur = function () { setTimeout(function () { restore(); close(); }, 150); };
+  }
+
   function wireStep(step) {
     step.fields.forEach(function (f) {
       if (f.type === 'checklist') {
@@ -559,6 +727,8 @@
             this.classList.add('on');
           };
         }
+      } else if (f.type === 'occupation') {
+        wireCombo(f);
       } else {
         var input = root.querySelector('#fi-' + f.id);
         if (!input) return;
@@ -637,10 +807,11 @@
 
   function displayValue(f) {
     var val = state.answers[f.id];
+    if (f.type === 'occupation') { return val ? occLabel(val) : ''; }
     if (f.type === 'checklist') {
       if (!val) return '';
       var names = [];
-      f.options.forEach(function (o) { if (val[o.id]) names.push(tr(o.label)); });
+      fieldOptions(f).forEach(function (o) { if (val[o.id]) names.push(tr(o.label)); });
       return names.join(', ');
     }
     if (f.type === 'yesno') {
@@ -659,10 +830,14 @@
   /* English value for the email to Sebastian (always English labels) */
   function reportValue(f) {
     var val = state.answers[f.id];
+    if (f.type === 'occupation') {
+      var oo = occByKey(val);
+      return oo ? oo.label.en : '';
+    }
     if (f.type === 'checklist') {
       if (!val) return '';
       var names = [];
-      f.options.forEach(function (o) { if (val[o.id]) names.push(o.label.en); });
+      fieldOptions(f).forEach(function (o) { if (val[o.id]) names.push(o.label.en); });
       return names.join(', ');
     }
     if (f.type === 'yesno') {
