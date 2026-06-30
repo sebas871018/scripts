@@ -743,6 +743,15 @@
 
     setHidden('psi-comments', state.answers.c_comments || '');
 
+    /* Set the form's display name so the notification email subject reads
+       "Checklist - <client name>" instead of the inherited "PSI Assessment". */
+    var subjForm = document.getElementById('wf-psi-form');
+    if (subjForm) {
+      var clientName = (state.answers.book_name || '').trim() || 'Client';
+      subjForm.setAttribute('name', 'Checklist - ' + clientName);
+      subjForm.setAttribute('data-name', 'Checklist - ' + clientName);
+    }
+
     var btn = root.querySelector('#chk-submit');
     if (btn) { btn.textContent = ui('sending'); btn.disabled = true; }
 
