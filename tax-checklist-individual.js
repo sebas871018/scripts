@@ -158,24 +158,22 @@
       id: 'personal',
       title: L('Your details', 'Tus datos', 'Seus dados'),
       fields: [
-        { id: 'pd_pref', type: 'text', opt: true,
-          label: L('Preferred name', 'Nombre preferido', 'Nome preferido') },
-        { id: 'pd_dob', type: 'date', opt: true,
-          label: L('Date of birth', 'Fecha de nacimiento', 'Data de nascimento') },
-        { id: 'pd_address', type: 'text', opt: true,
-          label: L('Current residential address', 'Direccion residencial actual', 'Endereco residencial atual') },
         { id: 'pd_occupation', type: 'text', opt: true,
           label: L('Occupation', 'Ocupacion', 'Ocupacao') },
         { id: 'pd_newclient', type: 'yesno', opt: true,
           label: L('Are you a new client?', 'Eres cliente nuevo?', 'Voce e cliente novo?') },
-        { id: 'pd_residency', type: 'select', opt: true,
-          label: L('Tax residency status', 'Estado de residencia fiscal', 'Status de residencia fiscal'),
+        { id: 'pd_status', type: 'select', opt: true,
+          label: L('Residency status', 'Estado de residencia', 'Status de residencia'),
           options: [
-            { id: 'resident', label: L('Australian resident', 'Residente australiano', 'Residente australiano') },
-            { id: 'foreign', label: L('Foreign resident', 'Residente extranjero', 'Residente estrangeiro') },
-            { id: 'whm', label: L('Working holiday maker', 'Working holiday maker', 'Working holiday maker') },
-            { id: 'unsure', label: L('Not sure', 'No estoy seguro', 'Nao tenho certeza') }
+            { id: 'citizen', label: L('Australian citizen', 'Ciudadano australiano', 'Cidadao australiano') },
+            { id: 'pr', label: L('Permanent resident', 'Residente permanente', 'Residente permanente') },
+            { id: 'visa', label: L('On a visa', 'Con una visa', 'Com um visto') }
           ] },
+        { id: 'pd_visa_type', type: 'text', opt: true, showIf: { field: 'pd_status', value: 'visa' },
+          label: L('Which visa do you hold?', 'Que visa tienes?', 'Qual visto voce possui?'),
+          help: L('For example: student, working holiday, skilled, partner, bridging.',
+                  'Por ejemplo: estudiante, working holiday, calificada, pareja, puente (bridging).',
+                  'Por exemplo: estudante, working holiday, qualificado, parceiro, ponte (bridging).') },
         { id: 'pd_marital', type: 'select', opt: true,
           label: L('Relationship status', 'Estado civil', 'Estado civil'),
           options: [
@@ -462,6 +460,19 @@
     root.querySelector('#chk-start').onclick = function () { state.step = 0; render(); };
   }
 
+  /* Conditional fields: a field with showIf only renders when the referenced
+     answer matches (e.g. visa type shows only when status is "On a visa"). */
+  function fieldVisible(f) {
+    if (!f.showIf) return true;
+    return state.answers[f.showIf.field] === f.showIf.value;
+  }
+  function stepHasDependent(step, fieldId) {
+    for (var i = 0; i < step.fields.length; i++) {
+      if (step.fields[i].showIf && step.fields[i].showIf.field === fieldId) return true;
+    }
+    return false;
+  }
+
   function renderStep(step) {
     var pct = Math.round(((state.step + 1) / (STEPS.length + 1)) * 100);
     var html = '<div class="chk-card">' +
@@ -471,7 +482,7 @@
     if (step.intro) html += '<p class="chk-step-intro">' + esc(tr(step.intro)) + '</p>';
     if (step.idReminder) html += '<p class="chk-note">' + idReminderHtml() + '</p>';
 
-    step.fields.forEach(function (f) { html += renderField(f); });
+    step.fields.forEach(function (f) { if (fieldVisible(f)) html += renderField(f); });
 
     html += '<div class="chk-nav">' +
       '<button class="chk-btn chk-btn-ghost" id="chk-back">' + esc(ui('back')) + '</button>' +
@@ -576,6 +587,7 @@
             state.answers[f.id] = this.value;
             state.touched[f.id] = true;
             showErr(f.id, fieldError(f, this.value));
+            if (stepHasDependent(step, f.id)) renderStep(step);
           };
         }
       }
@@ -588,7 +600,7 @@
     root.querySelector('#chk-next').onclick = function () {
       var ok = true;
       step.fields.forEach(function (f) {
-        if (f.type === 'checklist' || f.type === 'yesno') return;
+        if (f.type === 'checklist' || f.type === 'yesno' || !fieldVisible(f)) return;
         state.touched[f.id] = true;
         var msg = fieldError(f, state.answers[f.id]);
         showErr(f.id, msg);
@@ -614,6 +626,7 @@
     STEPS.forEach(function (step) {
       html += '<h4>' + esc(tr(step.title)) + '</h4>';
       step.fields.forEach(function (f) {
+        if (!fieldVisible(f)) return;
         var disp = displayValue(f);
         if (disp === '') return;
         html += '<div class="chk-review-row"><b>' + esc(tr(f.label)) + '</b><span>' + esc(disp) + '</span></div>';
@@ -675,6 +688,7 @@
   function sectionReport(step) {
     var parts = [];
     step.fields.forEach(function (f) {
+      if (!fieldVisible(f)) return;
       var v = reportValue(f);
       if (v === '') return;
       parts.push(f.label.en + ': ' + v);
