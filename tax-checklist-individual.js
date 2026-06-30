@@ -42,7 +42,10 @@
       brand: 'Y&S Accounting',
       title: 'Individual Tax Return Checklist',
       subtitle: 'For the 2025-26 financial year (1 July 2025 to 30 June 2026)',
-      intro: 'Please complete this short checklist before your appointment so we can prepare your individual tax return efficiently. It takes about 5 minutes. Tick everything that applies to you, even if you are unsure, and we will confirm the details together.',
+      intro: 'Thank you for booking your appointment. Please complete this checklist so we can prepare your individual tax return before we meet. It takes about 5 minutes. Tick everything that applies to you, even if you are unsure, and we will confirm the details together.',
+      idReminder: 'This is step 2. If you have not completed step 1 (the ID verification form), please [LINK]complete it here[/LINK] first.',
+      bookEmailLabel: 'Email used to book your appointment',
+      bookEmailHelp: 'Enter the same email you used when booking, so we can match this checklist to your appointment.',
       langLabel: 'Choose your language',
       start: 'Start checklist',
       back: 'Back',
@@ -67,7 +70,10 @@
       brand: 'Y&S Accounting',
       title: 'Lista de verificacion para tu declaracion de impuestos',
       subtitle: 'Para el ano fiscal 2025-26 (1 de julio de 2025 al 30 de junio de 2026)',
-      intro: 'Completa esta breve lista antes de tu cita para que podamos preparar tu declaracion de impuestos de forma eficiente. Toma unos 5 minutos. Marca todo lo que se aplique a tu caso, aunque no estes seguro, y confirmaremos los detalles juntos.',
+      intro: 'Gracias por reservar tu cita. Completa esta lista para que podamos preparar tu declaracion de impuestos antes de reunirnos. Toma unos 5 minutos. Marca todo lo que se aplique a tu caso, aunque no estes seguro, y confirmaremos los detalles juntos.',
+      idReminder: 'Este es el paso 2. Si aun no completaste el paso 1 (el formulario de verificacion de identidad), por favor [LINK]completalo aqui[/LINK] primero.',
+      bookEmailLabel: 'Correo que usaste para reservar tu cita',
+      bookEmailHelp: 'Ingresa el mismo correo que usaste al reservar, para vincular esta lista con tu cita.',
       langLabel: 'Elige tu idioma',
       start: 'Comenzar',
       back: 'Atras',
@@ -92,7 +98,10 @@
       brand: 'Y&S Accounting',
       title: 'Lista de verificacao para sua declaracao de imposto',
       subtitle: 'Para o ano fiscal 2025-26 (1 de julho de 2025 a 30 de junho de 2026)',
-      intro: 'Preencha esta breve lista antes da sua consulta para que possamos preparar sua declaracao de imposto com eficiencia. Leva cerca de 5 minutos. Marque tudo o que se aplica a voce, mesmo em caso de duvida, e confirmaremos os detalhes juntos.',
+      intro: 'Obrigado por agendar sua consulta. Preencha esta lista para que possamos preparar sua declaracao de imposto antes de nos reunirmos. Leva cerca de 5 minutos. Marque tudo o que se aplica a voce, mesmo em caso de duvida, e confirmaremos os detalhes juntos.',
+      idReminder: 'Esta e a etapa 2. Se voce ainda nao concluiu a etapa 1 (o formulario de verificacao de identidade), por favor [LINK]conclua aqui[/LINK] primeiro.',
+      bookEmailLabel: 'E-mail usado para agendar sua consulta',
+      bookEmailHelp: 'Informe o mesmo e-mail que voce usou ao agendar, para vincularmos esta lista a sua consulta.',
       langLabel: 'Escolha seu idioma',
       start: 'Comecar',
       back: 'Voltar',
@@ -116,16 +125,39 @@
   };
   function ui(k) { return (T[state.lang] && T[state.lang][k]) || T.en[k]; }
 
+  /* Builds the Step 1 (ID verification) reminder with a real link from the
+     [LINK]...[/LINK] placeholder in the translated string. */
+  function idReminderHtml() {
+    var s = ui('idReminder') || '';
+    var a = s.split('[LINK]');
+    var b = (a[1] || '').split('[/LINK]');
+    return esc(a[0] || '') +
+      '<a class="chk-link" href="https://www.taxbne.com.au/forms/client-id-verification-form" target="_blank" rel="noopener">' +
+      esc(b[0] || '') + '</a>' + esc(b[1] || '');
+  }
+
   /* ---- Step / field definitions ------------------------------------------- */
   /* field types: text, date, tel, email, select, textarea, checklist, yesno  */
 
   var STEPS = [
     {
+      id: 'booking',
+      title: L('Confirm your appointment', 'Confirma tu cita', 'Confirme sua consulta'),
+      idReminder: true,
+      fields: [
+        { id: 'book_name', type: 'text',
+          label: L('Full legal name', 'Nombre legal completo', 'Nome legal completo') },
+        { id: 'book_email', type: 'email',
+          label: L('Email used to book your appointment', 'Correo que usaste para reservar tu cita', 'E-mail usado para agendar sua consulta'),
+          help: L('Use the same email you booked with so we can match this checklist to your appointment.',
+                  'Usa el mismo correo con el que reservaste para vincular esta lista con tu cita.',
+                  'Use o mesmo e-mail com que agendou para vincularmos esta lista a sua consulta.') }
+      ]
+    },
+    {
       id: 'personal',
       title: L('Your details', 'Tus datos', 'Seus dados'),
       fields: [
-        { id: 'pd_name', type: 'text',
-          label: L('Full legal name', 'Nombre legal completo', 'Nome legal completo') },
         { id: 'pd_pref', type: 'text', opt: true,
           label: L('Preferred name', 'Nombre preferido', 'Nome preferido') },
         { id: 'pd_dob', type: 'date', opt: true,
@@ -273,19 +305,13 @@
 
     {
       id: 'contact',
-      title: L('Your contact details', 'Tus datos de contacto', 'Seus dados de contato'),
-      intro: L('So we can confirm your appointment and follow up if needed.',
-               'Para confirmar tu cita y dar seguimiento si es necesario.',
-               'Para confirmar sua consulta e dar retorno se necessario.'),
+      title: L('Anything else', 'Algo mas', 'Mais alguma coisa'),
+      intro: L('A phone number and any notes help us prepare. The rest is optional.',
+               'Un numero de telefono y cualquier nota nos ayudan a prepararnos. El resto es opcional.',
+               'Um numero de telefone e qualquer observacao nos ajudam a preparar. O resto e opcional.'),
       fields: [
-        { id: 'c_name', type: 'text',
-          label: L('Full name', 'Nombre completo', 'Nome completo') },
-        { id: 'c_email', type: 'email',
-          label: L('Email address', 'Correo electronico', 'E-mail') },
         { id: 'c_phone', type: 'tel', opt: true,
           label: L('Phone number', 'Numero de telefono', 'Numero de telefone') },
-        { id: 'c_appt', type: 'textarea', opt: true,
-          label: L('Preferred appointment times or availability', 'Horarios o disponibilidad preferidos', 'Horarios ou disponibilidade preferidos') },
         { id: 'c_comments', type: 'textarea', opt: true,
           label: L('Anything else we should know', 'Algo mas que debamos saber', 'Algo mais que devemos saber') }
       ]
@@ -299,19 +325,21 @@
 
   function fieldError(field, val) {
     val = (val || '').trim();
-    if (field.id === 'c_name') {
-      if (val.length < 2 || !RE_NAME.test(val)) return ui('errName');
-      return '';
-    }
-    if (field.id === 'c_email') {
+    if (field.type === 'email') {
+      if (!val) return field.opt ? '' : ui('errEmail');
       if (!RE_EMAIL.test(val)) return ui('errEmail');
       return '';
     }
-    if (field.id === 'c_phone') {
+    if (field.type === 'tel') {
       if (val && !RE_PHONE.test(val)) return ui('errPhone');
+      if (!val && !field.opt) return ui('required');
       return '';
     }
-    if (!field.opt && field.type !== 'checklist' && !val) return ui('required');
+    if (field.id === 'book_name' || field.id === 'c_name') {
+      if (val.length < 2 || !RE_NAME.test(val)) return ui('errName');
+      return '';
+    }
+    if (!field.opt && field.type !== 'checklist' && field.type !== 'yesno' && !val) return ui('required');
     return '';
   }
 
@@ -346,6 +374,9 @@
       '#psi-app .chk-step-meta{font-size:11px;color:var(--gold2);text-transform:uppercase;letter-spacing:.12em;font-weight:700;margin:0 0 14px;}',
       '#psi-app .chk-step-title{font-size:21px;color:var(--navy);font-weight:800;margin:0 0 6px;letter-spacing:-.01em;}',
       '#psi-app .chk-step-intro{font-size:14px;color:var(--mut);margin:0 0 22px;line-height:1.5;}',
+      '#psi-app .chk-note{font-size:13px;line-height:1.5;color:#3a4654;background:var(--cream);border:1px solid #efe4c9;border-radius:10px;padding:11px 14px;margin:0 0 20px;}',
+      '#psi-app .chk-link{color:var(--gold2);font-weight:700;text-decoration:underline;}',
+      '#psi-app .chk-help{font-size:12.5px;color:var(--mut);margin:0 0 8px;line-height:1.45;}',
       '#psi-app .chk-field{margin:0 0 18px;}',
       '#psi-app .chk-label{display:block;font-size:14px;font-weight:600;color:var(--navy);margin:0 0 8px;}',
       '#psi-app .chk-opt-tag{font-weight:400;color:var(--mut);font-size:12px;}',
@@ -432,16 +463,13 @@
   }
 
   function renderStep(step) {
-    // Carry the legal name forward so the contact step isn't asked twice.
-    if (step.id === 'contact' && !state.answers.c_name && state.answers.pd_name) {
-      state.answers.c_name = state.answers.pd_name;
-    }
     var pct = Math.round(((state.step + 1) / (STEPS.length + 1)) * 100);
     var html = '<div class="chk-card">' +
       '<div class="chk-prog"><span style="width:' + pct + '%"></span></div>' +
       '<p class="chk-step-meta">' + esc(ui('stepOf').replace('{a}', state.step + 1).replace('{b}', STEPS.length + 1)) + '</p>' +
       '<h2 class="chk-step-title">' + esc(tr(step.title)) + '</h2>';
     if (step.intro) html += '<p class="chk-step-intro">' + esc(tr(step.intro)) + '</p>';
+    if (step.idReminder) html += '<p class="chk-note">' + idReminderHtml() + '</p>';
 
     step.fields.forEach(function (f) { html += renderField(f); });
 
@@ -486,6 +514,7 @@
     } else {
       var typeAttr = f.type === 'email' ? 'email' : (f.type === 'tel' ? 'tel' : (f.type === 'date' ? 'date' : 'text'));
       h += '<label class="chk-label">' + esc(tr(f.label)) + optTag + '</label>' +
+        (f.help ? '<p class="chk-help">' + esc(tr(f.help)) + '</p>' : '') +
         '<input class="chk-input" type="' + typeAttr + '" id="fi-' + f.id + '" value="' + esc(val || '') + '">';
     }
     h += '<p class="chk-err" id="er-' + f.id + '"></p></div>';
@@ -684,8 +713,8 @@
     var docCount = countChecked('doc_items');
     var docTotal = optCount('documents', 'doc_items');
 
-    setHidden('psi-full-name', state.answers.c_name || state.answers.pd_name || '');
-    setHidden('psi-email', state.answers.c_email || '');
+    setHidden('psi-full-name', state.answers.book_name || '');
+    setHidden('psi-email', state.answers.book_email || '');
     setHidden('psi-phone', state.answers.c_phone || '');
     setHidden('psi-language', langName);
     setHidden('psi-verdict-title', 'Individual Tax Return Checklist');
@@ -698,15 +727,14 @@
       ' --- INCOME --- ' + sectionReport(stepById('income')) +
       ' --- DEDUCTIONS --- ' + sectionReport(stepById('deductions')));
 
-    var notes = [];
-    if (state.answers.c_appt) notes.push('Preferred times: ' + state.answers.c_appt);
-    if (state.answers.c_comments) notes.push('Notes: ' + state.answers.c_comments);
+    var notes = state.answers.c_comments ? ('Notes: ' + state.answers.c_comments) : '';
     setHidden('psi-answers',
-      'OFFSETS --- ' + sectionReport(stepById('offsets')) +
+      'BOOKING EMAIL --- ' + (state.answers.book_email || '') +
+      ' --- OFFSETS --- ' + sectionReport(stepById('offsets')) +
       ' --- DOCUMENTS --- ' + sectionReport(stepById('documents')) +
-      (notes.length ? ' --- CLIENT NOTES --- ' + notes.join(' | ') : ''));
+      (notes ? ' --- CLIENT NOTES --- ' + notes : ''));
 
-    setHidden('psi-comments', state.answers.c_appt ? ('Preferred times: ' + state.answers.c_appt) : '');
+    setHidden('psi-comments', state.answers.c_comments || '');
 
     var btn = root.querySelector('#chk-submit');
     if (btn) { btn.textContent = ui('sending'); btn.disabled = true; }
