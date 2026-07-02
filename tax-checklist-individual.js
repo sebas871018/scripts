@@ -885,40 +885,49 @@
     return 0;
   }
 
-  /* English lines for one field, used to build the structured email report.
-     Checklists become a heading plus bulleted items; everything else is one
-     "Label: value" line. Hidden (showIf) fields are skipped. */
-  function fieldReportLines(f) {
-    if (!fieldVisible(f)) return [];
+  /* One HTML table row for a field (label cell + value cell). Checklists put
+     each ticked item on its own line via <br>. Hidden (showIf) fields skipped.
+     The email client renders this HTML, so values are escaped, not the tags. */
+  function fieldRowHtml(f) {
+    if (!fieldVisible(f)) return '';
+    var valueHtml;
     if (f.type === 'checklist') {
-      var sel = state.answers[f.id]; if (!sel) return [];
+      var sel = state.answers[f.id]; if (!sel) return '';
       var items = [];
-      fieldOptions(f).forEach(function (o) { if (sel[o.id]) items.push('  - ' + o.label.en); });
-      return items.length ? [f.label.en + ':'].concat(items) : [];
+      fieldOptions(f).forEach(function (o) { if (sel[o.id]) items.push(esc(o.label.en)); });
+      if (!items.length) return '';
+      valueHtml = items.join('<br>');
+    } else {
+      var rv = reportValue(f);
+      if (!rv) return '';
+      valueHtml = esc(rv);
     }
-    var rv = reportValue(f);
-    return rv ? [f.label.en + ': ' + rv] : [];
+    return '<tr><td valign="top" width="42%"><b>' + esc(f.label.en) + '</b></td><td valign="top">' + valueHtml + '</td></tr>';
   }
 
-  /* Builds a newline-structured, sectioned report (Webflow textarea fields keep
-     line breaks, so this renders as a readable table-like block in the email). */
   var EMAIL_SECTIONS = {
     booking: 'Client details', income: 'Income received', personal: 'Personal details',
     deductions: 'Deductions to claim', offsets: 'Offsets and other',
     documents: 'Documents ready', contact: 'Additional notes'
   };
+
+  /* Builds a bordered HTML table (the notification email renders HTML). Section
+     header rows in navy; two columns: field label + value. */
   function buildEmailReport(stepIds) {
-    var out = [];
+    var rows = [];
     stepIds.forEach(function (id) {
       var step = stepById(id); if (!step) return;
       var body = [];
-      step.fields.forEach(function (f) { body = body.concat(fieldReportLines(f)); });
+      step.fields.forEach(function (f) { var r = fieldRowHtml(f); if (r) body.push(r); });
       if (!body.length) return;
-      out.push('=== ' + (EMAIL_SECTIONS[id] || step.title.en).toUpperCase() + ' ===');
-      out = out.concat(body);
-      out.push('');
+      rows.push('<tr bgcolor="#0B2A4A"><td colspan="2"><font color="#ffffff"><b>' +
+        esc(EMAIL_SECTIONS[id] || step.title.en) + '</b></font></td></tr>');
+      rows = rows.concat(body);
     });
-    return out.join('\n').replace(/\n+$/, '');
+    if (!rows.length) return '';
+    return '<table border="1" cellpadding="6" cellspacing="0" width="100%" ' +
+      'style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;">' +
+      rows.join('') + '</table>';
   }
 
   /* Maps checklist data into the duplicated PSI form's registered fields, then
@@ -942,6 +951,8 @@
       'Income: ' + incCount + '  |  Deductions: ' + dedCount +
       '  |  Documents ready: ' + docCount + '/' + docTotal);
 
+    var fEl = document.getElementById('psi-findings');
+    if (fEl) fEl.removeAttribute('maxlength');
     setHidden('psi-findings', buildEmailReport(['booking', 'income', 'personal', 'deductions', 'offsets', 'documents', 'contact']));
     setHidden('psi-answers', '');
     setHidden('psi-comments', '');
