@@ -623,15 +623,30 @@
       '  |  Rate: ' + (results.rate * 100).toFixed(0) + '%' +
       '  |  Net refund: ' + fmt(results.net);
 
+    // Populate the visible contact fields (kept as separate email rows for scanability)
     set('dasp-full-name', a.fullName);
     set('dasp-email', a.email);
     set('dasp-phone', a.phone);
     set('dasp-language', LANG_LABELS[state.lang] + ' (' + state.lang + ')');
-    set('dasp-verdict-title', 'DASP Refund Estimate');
-    set('dasp-verdict-text', verdictText);
-    set('dasp-findings', buildEmailReport(results));
-    set('dasp-answers', '');
     set('dasp-comments', a.comments || '');
+
+    // Blank the granular calculation fields - their contents live inside the HTML
+    // summary table below, so leaving them empty keeps the email compact
+    set('dasp-visa-type', '');
+    set('dasp-super-balance', '');
+    set('dasp-tax-free-component', '');
+    set('dasp-taxable-component', '');
+    set('dasp-tax-rate', '');
+    set('dasp-tax-withheld', '');
+    set('dasp-net-refund', '');
+
+    // Full HTML report goes into dasp-summary - Webflow renders it as a table
+    // in the notification email, matching the checklist tool's format.
+    // Wrapped in a container div; \n would be stripped by Webflow so <br> is used
+    var summaryHtml = '<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;">' +
+      '<p style="margin:0 0 12px;font-size:15px;"><b>' + esc(verdictText) + '</b></p>' +
+      buildEmailReport(results) + '</div>';
+    set('dasp-summary', summaryHtml);
 
     var clientName = (a.fullName || '').trim() || 'Client';
     form.setAttribute('name', 'DASP Refund - ' + clientName);
