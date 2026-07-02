@@ -885,6 +885,42 @@
     return 0;
   }
 
+  /* English lines for one field, used to build the structured email report.
+     Checklists become a heading plus bulleted items; everything else is one
+     "Label: value" line. Hidden (showIf) fields are skipped. */
+  function fieldReportLines(f) {
+    if (!fieldVisible(f)) return [];
+    if (f.type === 'checklist') {
+      var sel = state.answers[f.id]; if (!sel) return [];
+      var items = [];
+      fieldOptions(f).forEach(function (o) { if (sel[o.id]) items.push('  - ' + o.label.en); });
+      return items.length ? [f.label.en + ':'].concat(items) : [];
+    }
+    var rv = reportValue(f);
+    return rv ? [f.label.en + ': ' + rv] : [];
+  }
+
+  /* Builds a newline-structured, sectioned report (Webflow textarea fields keep
+     line breaks, so this renders as a readable table-like block in the email). */
+  var EMAIL_SECTIONS = {
+    booking: 'Client details', income: 'Income received', personal: 'Personal details',
+    deductions: 'Deductions to claim', offsets: 'Offsets and other',
+    documents: 'Documents ready', contact: 'Additional notes'
+  };
+  function buildEmailReport(stepIds) {
+    var out = [];
+    stepIds.forEach(function (id) {
+      var step = stepById(id); if (!step) return;
+      var body = [];
+      step.fields.forEach(function (f) { body = body.concat(fieldReportLines(f)); });
+      if (!body.length) return;
+      out.push('=== ' + (EMAIL_SECTIONS[id] || step.title.en).toUpperCase() + ' ===');
+      out = out.concat(body);
+      out.push('');
+    });
+    return out.join('\n').replace(/\n+$/, '');
+  }
+
   /* Maps checklist data into the duplicated PSI form's registered fields, then
      programmatically submits that form so Webflow records and emails it. */
   function doSubmit() {
@@ -895,28 +931,20 @@
     var docCount = countChecked('doc_items');
     var docTotal = optCount('documents', 'doc_items');
 
+    var occ = occByKey(state.answers.pd_occupation);
     setHidden('psi-full-name', state.answers.book_name || '');
     setHidden('psi-email', state.answers.book_email || '');
-    setHidden('psi-phone', state.answers.c_phone || '');
+    setHidden('psi-phone', '');
     setHidden('psi-language', langName);
     setHidden('psi-verdict-title', 'Individual Tax Return Checklist');
     setHidden('psi-verdict-text',
-      'Income: ' + incCount + ' types | Deductions: ' + dedCount +
-      ' | Documents ready: ' + docCount + '/' + docTotal);
+      (occ ? 'Occupation: ' + occ.label.en + '  |  ' : '') +
+      'Income: ' + incCount + '  |  Deductions: ' + dedCount +
+      '  |  Documents ready: ' + docCount + '/' + docTotal);
 
-    setHidden('psi-findings',
-      'PERSONAL --- ' + sectionReport(stepById('personal')) +
-      ' --- INCOME --- ' + sectionReport(stepById('income')) +
-      ' --- DEDUCTIONS --- ' + sectionReport(stepById('deductions')));
-
-    var notes = state.answers.c_comments ? ('Notes: ' + state.answers.c_comments) : '';
-    setHidden('psi-answers',
-      'BOOKING EMAIL --- ' + (state.answers.book_email || '') +
-      ' --- OFFSETS --- ' + sectionReport(stepById('offsets')) +
-      ' --- DOCUMENTS --- ' + sectionReport(stepById('documents')) +
-      (notes ? ' --- CLIENT NOTES --- ' + notes : ''));
-
-    setHidden('psi-comments', state.answers.c_comments || '');
+    setHidden('psi-findings', buildEmailReport(['booking', 'income', 'personal', 'deductions', 'offsets', 'documents', 'contact']));
+    setHidden('psi-answers', '');
+    setHidden('psi-comments', '');
 
     /* Set the form's display name so the notification email subject reads
        "Checklist - <client name>" instead of the inherited "PSI Assessment". */
