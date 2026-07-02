@@ -551,6 +551,57 @@
     return errs;
   }
 
+  function buildEmailReport(results) {
+    var a = state.answers;
+    var visaLabel = a.visa === 'whm'
+      ? 'Working Holiday Maker (subclass 417 / 462)'
+      : 'Other temporary visa (482, 500, 485, etc.)';
+    var langLabel = LANG_LABELS[state.lang] + ' (' + state.lang + ')';
+
+    var sections = [
+      { title: 'Contact details', rows: [
+        ['Full name', a.fullName],
+        ['Email', a.email],
+        ['Phone', a.phone],
+        ['Preferred language', langLabel],
+        ['Consent to be contacted', a.consent
+          ? 'YES - client agreed to Y&S Accounting contacting them about their DASP claim'
+          : 'NO - client did not tick the consent box']
+      ]},
+      { title: 'Super account', rows: [
+        ['Visa type', visaLabel],
+        ['Total super balance', fmt(results.balance)],
+        ['Tax-free component', results.taxFree > 0 ? fmt(results.taxFree) : 'Not provided']
+      ]},
+      { title: 'DASP calculation', rows: [
+        ['Taxable component', fmt(results.taxable)],
+        ['DASP tax rate', (results.rate * 100).toFixed(0) + '%'],
+        ['Tax withheld', fmt(results.tax)],
+        ['Estimated net refund', fmt(results.net)]
+      ]},
+      { title: 'Additional notes', rows: [
+        ['Client comments', a.comments || 'None']
+      ]}
+    ];
+
+    var rows = [];
+    for (var i = 0; i < sections.length; i++) {
+      var s = sections[i];
+      rows.push('<tr bgcolor="#0B2A4A"><td colspan="2"><font color="#ffffff"><b>' +
+        esc(s.title) + '</b></font></td></tr>');
+      for (var j = 0; j < s.rows.length; j++) {
+        var label = s.rows[j][0];
+        var value = s.rows[j][1];
+        if (value == null || value === '') continue;
+        rows.push('<tr><td valign="top" width="42%"><b>' + esc(label) + '</b></td>' +
+          '<td valign="top">' + esc(value) + '</td></tr>');
+      }
+    }
+    return '<table border="1" cellpadding="6" cellspacing="0" width="100%" ' +
+      'style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;font-size:14px;">' +
+      rows.join('') + '</table>';
+  }
+
   function submitToWebflow(results) {
     var form = document.getElementById(FORM_ID);
     if (!form) {
@@ -560,31 +611,31 @@
     var a = state.answers;
     var set = function (id, val) {
       var el = form.querySelector('#' + id);
-      if (el) el.value = val == null ? '' : String(val);
+      if (el) {
+        if (el.tagName === 'TEXTAREA') el.removeAttribute('maxlength');
+        el.value = val == null ? '' : String(val);
+      }
     };
+
+    var visaShort = a.visa === 'whm' ? 'WHM (417/462)' : 'Other temp visa';
+    var verdictText = 'Visa: ' + visaShort +
+      '  |  Balance: ' + fmt(results.balance) +
+      '  |  Rate: ' + (results.rate * 100).toFixed(0) + '%' +
+      '  |  Net refund: ' + fmt(results.net);
+
     set('dasp-full-name', a.fullName);
     set('dasp-email', a.email);
     set('dasp-phone', a.phone);
     set('dasp-language', LANG_LABELS[state.lang] + ' (' + state.lang + ')');
-    set('dasp-visa-type', a.visa === 'whm' ? 'Working Holiday (417/462)' : 'Other temporary visa');
-    set('dasp-super-balance', fmt(results.balance));
-    set('dasp-tax-free-component', fmt(results.taxFree));
-    set('dasp-taxable-component', fmt(results.taxable));
-    set('dasp-tax-rate', (results.rate * 100).toFixed(0) + '%');
-    set('dasp-tax-withheld', fmt(results.tax));
-    set('dasp-net-refund', fmt(results.net));
+    set('dasp-verdict-title', 'DASP Refund Estimate');
+    set('dasp-verdict-text', verdictText);
+    set('dasp-findings', buildEmailReport(results));
+    set('dasp-answers', '');
     set('dasp-comments', a.comments || '');
-    var summary = [
-      'Gross: ' + fmt(results.balance),
-      'Tax-free: ' + fmt(results.taxFree),
-      'Taxable: ' + fmt(results.taxable),
-      'Rate: ' + (results.rate * 100).toFixed(0) + '%',
-      'Tax withheld: ' + fmt(results.tax),
-      'Net refund: ' + fmt(results.net),
-      'Visa: ' + (a.visa === 'whm' ? 'WHM' : 'Other'),
-      'Language: ' + LANG_LABELS[state.lang]
-    ].join(' | ');
-    set('dasp-summary', summary);
+
+    var clientName = (a.fullName || '').trim() || 'Client';
+    form.setAttribute('name', 'DASP Refund - ' + clientName);
+    form.setAttribute('data-name', 'DASP Refund - ' + clientName);
 
     var submitBtn = form.querySelector('#dasp-submit-btn');
     if (submitBtn) {
