@@ -1,18 +1,44 @@
 /* ===================================================================
-   Client ID Verification Form - residency conditional logic
+   Client ID Verification Form - visa status step + residency logic
    taxbne.com.au  /forms/client-id-verification-form
    -------------------------------------------------------------------
-   Temporary resident         -> shows Date of arrival, Date of departure,
-                                 and the visa upload (all required).
-   Permanent resident /
-   Australian citizen          -> hides + disables those three fields, and
-                                 relabels the passport upload to accept a
-                                 passport OR an Australian driver's licence /
-                                 proof of age, and shows that guidance note.
+   1. Styles the "Select Your Visa Status" question (its own first step)
+      as tax-return-calculator-style selectable cards.
+   2. Temporary resident        -> shows Date of arrival, Date of
+                                   departure, and the visa upload (required).
+      Permanent resident /
+      Australian citizen          -> hides + disables those three fields and
+                                   relabels the passport upload to accept a
+                                   passport OR an Australian driver's licence /
+                                   proof of age, and shows that guidance note.
    Loaded via a commit-pinned jsDelivr <script> tag in the page's
    Custom code (Before </body>).
    ==================================================================== */
 (function () {
+  var CSS = [
+    '#cidv-visa-step .form_label.tittle{text-align:center;display:block;margin-bottom:1rem;}',
+    '#cidv-vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}',
+    '@media (max-width:600px){#cidv-vs-grid{grid-template-columns:1fr;}}',
+    '#cidv-vs-grid .f-radio-butn-field-1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:1.5rem 1.25rem;min-height:160px;border:2px solid rgba(0,0,0,0.16);border-radius:12px;background:#fff;cursor:pointer;transition:.2s;margin:0;}',
+    '#cidv-vs-grid .f-radio-butn-field-1:hover{border-color:rgba(10,31,68,0.5);}',
+    '#cidv-vs-grid .w-radio-input{position:absolute !important;opacity:0 !important;width:1px;height:1px;margin:0;padding:0;pointer-events:none;}',
+    '#cidv-vs-grid .w-form-label{display:block;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.125rem;line-height:1.4;color:#060606;margin:0;padding:0;max-width:100%;}',
+    '#cidv-vs-grid .f-radio-butn-field-1::before{font-size:2rem;line-height:1;}',
+    '#cidv-vs-grid .f-radio-butn-field-1:has(#residency-temp)::before{content:"\\2708\\FE0F";}',
+    '#cidv-vs-grid .f-radio-butn-field-1:has(#residency-perm)::before{content:"\\1F3E0";}',
+    '#cidv-vs-grid .f-radio-butn-field-1:has(input:checked){background:#0a1f44;border-color:#0a1f44;box-shadow:0 8px 20px rgba(10,31,68,0.18);}',
+    '#cidv-vs-grid .f-radio-butn-field-1:has(input:checked) .w-form-label{color:#f6f8ff;}'
+  ].join('\n');
+
+  function injectStyles() {
+    if (document.getElementById('cidv-vs-style')) return;
+    var st = document.createElement('style');
+    st.id = 'cidv-vs-style';
+    st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+  injectStyles();
+
   function init() {
     var form = document.getElementById('wf-form-ID-Verification');
     if (!form) return;
