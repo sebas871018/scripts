@@ -30,6 +30,7 @@
   var CALENDLY = readCalendly();
   var CATEGORY = readCategory();
   var POST = (location.pathname.split('/').pop() || '').trim();
+  var IS_DASP = CATEGORY.indexOf('DASP') !== -1;
 
   /* ---------- analytics ---------- */
   function dl(event, data) {
@@ -80,7 +81,10 @@
       ]
     }
   ];
-
+  if (IS_DASP) {
+    STEPS[2].q = 'Our initial DASP consultation is free - we confirm your eligibility and give you a tailored quote, with services from $199. How would you like to proceed?';
+    STEPS[2].opts[0].label = 'Book my free consultation';
+  }
   function tierFor(a) {
     if (a.commitment === 'book') {
       return (a.complexity === 'complex' || a.situation === 'international') ? 'A' : 'B';
@@ -282,8 +286,11 @@
   function finish(tier) {
     if (tier === 'A' || tier === 'B') {
       dl('bq_redirect', { bq_tier: tier, bq_target: CALENDLY });
+      var bookingLine = IS_DASP
+        ? 'Opening the booking page for your free DASP consultation - we confirm your eligibility and give you a tailored quote. '
+        : 'Opening the booking page for a 60-minute session (AUD $250, credited to your services if you engage). ';
       mount.innerHTML = '<div class="bq-done"><h3>Taking you to the calendar</h3>' +
-        '<p>Opening the booking page for a 60-minute session (AUD $250, credited to your services if you engage). ' +
+        '<p>' + bookingLine +
         'If nothing happens, <a href="' + esc(CALENDLY) + '">open the booking calendar here</a>.</p></div>';
       setTimeout(function () { window.location.href = CALENDLY; }, 900);
       return;
