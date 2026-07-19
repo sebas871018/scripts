@@ -40,7 +40,7 @@
   }
 
   /* ---------- state ---------- */
-  var answers = { situation: '', complexity: '', commitment: '', name: '', email: '', phone: '' };
+  var answers = { situation: '', complexity: '', commitment: '', question: '', name: '', email: '', phone: '' };
   var step = 0; /* 0..3 questions/details, 4 done */
   var touched = { name: false, email: false };
   var submitted = false;
@@ -101,6 +101,8 @@
     '.bq-field{width:100%;box-sizing:border-box;border:1px solid #3a4c78;background:#24365e;color:#fff;border-radius:8px;padding:12px 14px;font-size:14.5px;margin-bottom:4px}' +
     '.bq-field::placeholder{color:#8fa3cf}' +
     '.bq-field.bq-invalid{border-color:#e04b3a}' +
+    '.bq-area{min-height:84px;resize:vertical;font-family:inherit}' +
+    '.bq-count{color:#9aa7c4;font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}' +
     '.bq-err{color:#ffb4a8;font-size:12.5px;margin:2px 0 8px;display:none}' +
     '.bq-label{color:#c4cbdb;font-size:13px;margin:10px 0 6px;display:block}' +
     '.bq-go{width:100%;background:#e04b3a;color:#fff;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:12px}' +
@@ -121,7 +123,7 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function progress(n) {
-    var h = '<div class="bq-steps">';
+    var h = '<div class="bq-count">Step ' + (n + 1) + ' of 4</div><div class="bq-steps">';
     for (var i = 0; i < 4; i++) h += '<span class="' + (i <= n ? 'on' : '') + '"></span>';
     return h + '</div>';
   }
@@ -153,9 +155,11 @@
     setHidden('bq-full-name', answers.name);
     setHidden('bq-email', answers.email);
     setHidden('bq-phone', answers.phone);
+    setHidden('bq-question', answers.question);
     setHidden('bq-answers',
       'situation: ' + answers.situation + ' | complexity: ' + answers.complexity +
       ' | commitment: ' + answers.commitment + ' | tier: ' + tier +
+      (answers.question ? ' | question: ' + answers.question : '') +
       ' | category: ' + CATEGORY + ' | post: ' + POST);
     var btn = document.getElementById('bq-submit-btn');
     if (btn) btn.click();
@@ -194,13 +198,27 @@
 
   function renderDetails() {
     dl('bq_step', { bq_step: 4 });
-    var tier = tierFor(answers);
-    var lead = tier === 'C'
-      ? 'Leave your details and we will email you our most useful guides for your situation.'
-      : 'Leave your details and we will take you straight to the booking calendar.';
+    var mode = answers.commitment; /* book | question | notyet */
+    var lead, btnLabel;
+    if (mode === 'book') {
+      lead = 'Leave your details and we will take you straight to the booking calendar.';
+      btnLabel = 'Continue to booking';
+    } else if (mode === 'question') {
+      lead = 'Leave your details and your question - we will reply within one business day.';
+      btnLabel = 'Send my question';
+    } else {
+      lead = 'Leave your details and we will email you our most useful guides for your situation.';
+      btnLabel = 'Send me the guides';
+    }
+    var questionField = mode === 'question'
+      ? '<label class="bq-label" for="bqf-question">Your question</label>' +
+        '<textarea class="bq-field bq-area" id="bqf-question" placeholder="e.g. Can I claim the CGT discount if I sell in June?">' + esc(answers.question) + '</textarea>' +
+        '<div class="bq-err" id="bqe-question"></div>'
+      : '';
     var h = progress(3) +
       '<div class="bq-q">Nearly done</div>' +
       '<p class="bq-label" style="margin-top:0">' + esc(lead) + '</p>' +
+      questionField +
       '<label class="bq-label" for="bqf-name">Full name</label>' +
       '<input class="bq-field" id="bqf-name" type="text" placeholder="e.g. Jane Smith" value="' + esc(answers.name) + '">' +
       '<div class="bq-err" id="bqe-name"></div>' +
@@ -209,7 +227,7 @@
       '<div class="bq-err" id="bqe-email"></div>' +
       '<label class="bq-label" for="bqf-phone">Phone (optional)</label>' +
       '<input class="bq-field" id="bqf-phone" type="tel" placeholder="04xx xxx xxx" value="' + esc(answers.phone) + '">' +
-      '<button type="button" class="bq-go" id="bq-go">' + (tier === 'C' ? 'Send me the guides' : 'Continue to booking') + '</button>' +
+      '<button type="button" class="bq-go" id="bq-go">' + esc(btnLabel) + '</button>' +
       '<button type="button" class="bq-back">Back</button>' +
       '<div class="bq-micro">Your details stay with Y&amp;S Accounting. No spam, unsubscribe any time.</div>';
     mount.innerHTML = h;
@@ -217,6 +235,7 @@
     var nameEl = document.getElementById('bqf-name');
     var emailEl = document.getElementById('bqf-email');
     var phoneEl = document.getElementById('bqf-phone');
+    var questionEl = document.getElementById('bqf-question');
     var goBtn = document.getElementById('bq-go');
 
     function show(el, errId, msg) {
@@ -227,9 +246,12 @@
     function validate(force) {
       var ne = validateName(nameEl.value);
       var ee = validateEmail(emailEl.value);
+      var qe = '';
+      if (questionEl && questionEl.value.trim().length < 10) qe = 'Please write your question (a sentence is plenty)';
       show(nameEl, 'bqe-name', (touched.name || force) ? ne : '');
       show(emailEl, 'bqe-email', (touched.email || force) ? ee : '');
-      return !ne && !ee;
+      if (questionEl) show(questionEl, 'bqe-question', force ? qe : '');
+      return !ne && !ee && !qe;
     }
     nameEl.onblur = function () { touched.name = true; validate(false); };
     emailEl.onblur = function () { touched.email = true; validate(false); };
@@ -240,6 +262,7 @@
       if (cleaned !== this.value) this.value = cleaned;
       answers.phone = this.value;
     };
+    if (questionEl) questionEl.oninput = function () { answers.question = this.value; };
     mount.querySelector('.bq-back').onclick = function () { step = 2; render(); };
 
     goBtn.onclick = function () {
@@ -247,6 +270,7 @@
       answers.name = nameEl.value.trim();
       answers.email = emailEl.value.trim();
       answers.phone = phoneEl.value.trim();
+      answers.question = questionEl ? questionEl.value.trim() : '';
       goBtn.disabled = true;
       goBtn.textContent = 'One moment...';
       var tierNow = tierFor(answers);
