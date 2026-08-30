@@ -24,6 +24,13 @@ window.__PSI_T = {
     errNameInvalid: 'Name can only contain letters, spaces, hyphens and apostrophes',
     errEmailEmpty: 'Please enter your email address',
     errEmailInvalid: 'Please enter a valid email address (e.g. jane@example.com)',
+    errEmailDisposable: 'Please use a permanent email address. Temporary or disposable mailboxes are not accepted.',
+    errEmailNoReply: 'Please use an email address we can actually reply to.',
+    errEmailPlaceholder: 'That looks like an example address. Please enter your real email address.',
+    errEmailDomain: 'That email domain does not look valid. Please check the part after the @.',
+    emailTypoHint: 'Did you mean',
+    emailTypoUse: 'Use this',
+    errCommentsLinks: 'Please remove the links from your comments before continuing.',
     errPhoneEmpty: 'Please enter your phone number',
     errPhoneInvalid: 'Phone number can only contain digits',
     errPhoneTooShort: 'Phone number is too short',
@@ -198,6 +205,13 @@ window.__PSI_T = {
     errNameInvalid: 'El nombre solo puede contener letras, espacios, guiones y apóstrofes',
     errEmailEmpty: 'Por favor ingrese su correo electrónico',
     errEmailInvalid: 'Por favor ingrese un correo electrónico válido (ej. juan@ejemplo.com)',
+    errEmailDisposable: 'Por favor use un correo electrónico permanente. No aceptamos correos temporales o desechables.',
+    errEmailNoReply: 'Por favor use un correo electrónico al que podamos responder.',
+    errEmailPlaceholder: 'Ese parece un correo de ejemplo. Por favor ingrese su correo electrónico real.',
+    errEmailDomain: 'Ese dominio de correo no parece válido. Por favor revise la parte después del @.',
+    emailTypoHint: 'Quiso decir',
+    emailTypoUse: 'Usar este',
+    errCommentsLinks: 'Por favor elimine los enlaces de sus comentarios antes de continuar.',
     errPhoneEmpty: 'Por favor ingrese su número de teléfono',
     errPhoneInvalid: 'El teléfono solo puede contener dígitos',
     errPhoneTooShort: 'El número de teléfono es demasiado corto',
@@ -372,6 +386,13 @@ window.__PSI_T = {
     errNameInvalid: 'O nome só pode conter letras, espaços, hifens e apóstrofes',
     errEmailEmpty: 'Por favor insira seu e-mail',
     errEmailInvalid: 'Por favor insira um e-mail válido (ex. joao@exemplo.com)',
+    errEmailDisposable: 'Por favor use um e-mail permanente. Não aceitamos e-mails temporários ou descartáveis.',
+    errEmailNoReply: 'Por favor use um e-mail para o qual possamos responder.',
+    errEmailPlaceholder: 'Esse parece um e-mail de exemplo. Por favor insira seu e-mail real.',
+    errEmailDomain: 'Esse domínio de e-mail não parece válido. Por favor verifique a parte após o @.',
+    emailTypoHint: 'Você quis dizer',
+    emailTypoUse: 'Usar este',
+    errCommentsLinks: 'Por favor remova os links dos seus comentários antes de continuar.',
     errPhoneEmpty: 'Por favor insira seu número de telefone',
     errPhoneInvalid: 'O telefone só pode conter dígitos',
     errPhoneTooShort: 'O número de telefone é muito curto',
@@ -576,10 +597,143 @@ var _css=`
 var _s=document.createElement('style');_s.textContent=_css;document.head.appendChild(_s);
 
 var _phoneCss=document.createElement('style');
-_phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}#psi-app .pcomments{width:100%;min-height:100px;padding:10px 12px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;outline:none;resize:vertical;line-height:1.5;box-sizing:border-box;}#psi-app .pcomments:focus{border-color:#0a1f44;}#psi-app .pcomments-count{font-size:12px;color:#5a6680;margin-top:4px;text-align:right;}';
+_phoneCss.textContent='#psi-app .pinput-group{position:relative;}#psi-app .pphone-wrap{display:flex;border:2px solid #e3e7ef;border-radius:6px;overflow:visible;position:relative;}#psi-app .pphone-cc{display:flex;align-items:center;gap:4px;padding:8px 10px;border:none;background:#f0f3f9;cursor:pointer;font-size:14px;font-family:inherit;border-radius:4px 0 0 4px;white-space:nowrap;}#psi-app .pphone-cc:hover{background:#e3e7ef;}#psi-app .pphone-arrow{font-size:10px;color:#5a6680;}#psi-app .pphone-input{flex:1;border:none;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;min-width:0;}#psi-app .pcc-dropdown{position:absolute;left:0;right:0;background:#fff;border:2px solid #e3e7ef;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:9999;overflow:hidden;}#psi-app .pcc-search{width:100%;padding:10px 12px;border:none;border-bottom:1px solid #e3e7ef;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;}#psi-app .pcc-list{max-height:200px;overflow-y:auto;-webkit-overflow-scrolling:touch;}#psi-app .pcc-item{padding:10px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:6px;}#psi-app .pcc-item:hover{background:#f0f3f9;}#psi-app .pcc-dial{color:#5a6680;margin-left:auto;}#psi-app .pcc-sep{height:1px;background:#e3e7ef;margin:4px 0;}#psi-app .pfield-err{display:none;color:#b3261e;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pfield-hint{display:none;color:#8a5a00;font-size:12px;margin-top:6px;line-height:1.3;}#psi-app .pfield-hint button{background:none;border:none;padding:0;margin-left:6px;color:#0a1f44;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;}#psi-app .pnope{position:absolute !important;left:-9999px !important;top:auto !important;width:1px !important;height:1px !important;overflow:hidden !important;opacity:0 !important;pointer-events:none;}#psi-app .pinput-invalid{border-color:#b3261e !important;}#psi-app .pphone-wrap:has(.pinput-invalid){border-color:#b3261e !important;}#psi-app .pcomments{width:100%;min-height:100px;padding:10px 12px;border:2px solid #e3e7ef;border-radius:6px;font-size:15px;font-family:inherit;outline:none;resize:vertical;line-height:1.5;box-sizing:border-box;}#psi-app .pcomments:focus{border-color:#0a1f44;}#psi-app .pcomments-count{font-size:12px;color:#5a6680;margin-top:4px;text-align:right;}';
 document.head.appendChild(_phoneCss);
 var T = window.__PSI_T;
 
+
+
+/* ---------------------------------------------------------------
+   Email hardening + lightweight bot traps (added to reduce spam)
+   All client side. No external services, no network calls.
+   --------------------------------------------------------------- */
+window.__psiT0 = window.__psiT0 || Date.now();
+
+var PSI_EMAIL = (function(){
+  // Stricter than the old /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/ :
+  // no leading/trailing/consecutive dots, real domain labels, alpha TLD 2-24.
+  var RE = /^[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+\/=?^_`{|}~-]+)*@(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,24}$/;
+
+  // Known throwaway / disposable mailbox providers.
+  var DISPOSABLE = ('mailinator.com,guerrillamail.com,guerrillamail.net,guerrillamail.org,guerrillamail.biz,guerrillamail.de,'+
+  'sharklasers.com,grr.la,spam4.me,10minutemail.com,10minutemail.net,10minutemail.co.uk,20minutemail.com,'+
+  'temp-mail.org,temp-mail.io,tempmail.com,tempmail.net,tempmailo.com,tempmail.plus,tmpmail.org,tmpmail.net,'+
+  'throwawaymail.com,throwaway.email,trashmail.com,trashmail.de,trashmail.net,trash-mail.com,wegwerfmail.de,'+
+  'yopmail.com,yopmail.net,yopmail.fr,cool.fr.nf,jetable.fr.nf,nospam.ze.tc,nomail.xl.cx,mega.zik.dj,'+
+  'maildrop.cc,mailnesia.com,mailcatch.com,mailnull.com,mailexpire.com,mailtemp.info,mail-temporaire.fr,'+
+  'dispostable.com,discard.email,discardmail.com,spambog.com,spambog.de,spamgourmet.com,spamex.com,'+
+  'fakeinbox.com,fakemailgenerator.com,getnada.com,nada.email,inboxbear.com,tempinbox.com,emailondeck.com,'+
+  'mohmal.com,moakt.com,mailsac.com,harakirimail.com,anonbox.net,anonymbox.com,armyspy.com,cuvox.de,'+
+  'dayrep.com,einrot.com,fleckens.hu,gustr.com,jourrapide.com,rhyta.com,superrito.com,teleworm.us,'+
+  'burnermail.io,mailbox.in.ua,emltmp.com,tempr.email,dropmail.me,minuteinbox.com,mail.tm,mail7.io,'+
+  'inboxkitten.com,linshiyou.com,tempmailaddress.com,luxusmail.org,mailpoof.com,vomoto.com,'+
+  'byom.de,mytrashmail.com,thisisnotmyrealemail.com,you-spam.com,zetmail.com,0-mail.com,1secmail.com,'+
+  '1secmail.net,1secmail.org,esiix.com,wwjmp.com,xojxe.com,yoggm.com,rteet.com,dpptd.com,'+
+  'trbvm.com,vjuum.com,laafd.com,txcct.com,vddaz.com,vjuum.net,mailinator.net,mailinator2.com,'+
+  'binkmail.com,bobmail.info,chammy.info,devnullmail.com,letthemeatspam.com,mailin8r.com,'+
+  'notmailinator.com,reallymymail.com,sogetthis.com,spamherelots.com,suremail.info,thisisnotmyrealemail.com,'+
+  'tradermail.info,veryrealemail.com,zippymail.info,mailinator.org,mailinator.us,'+
+  'binkmail.net,mailinator.info').split(',');
+
+  // Obvious placeholder / non-reply local parts and domains.
+  var PLACEHOLDER_DOMAINS = ['example.com','example.org','example.net','example.co','domain.com','yourdomain.com','mydomain.com','email.com.au','sample.com','asdf.com','test.com','test.com.au','abc.com','fake.com','noemail.com','nomail.com','none.com','nowhere.com'];
+  var NOREPLY = /^(no-?reply|donot-?reply|do-?not-?reply|bounce|postmaster|mailer-daemon|abuse|spam)$/i;
+  var JUNK_LOCAL = /^(test|testing|asdf+|qwerty|abcd?|aaa+|xxx+|zzz+|123+|null|undefined|admin123)$/i;
+
+  // Common domains we check typos against.
+  var COMMON = ['gmail.com','googlemail.com','hotmail.com','hotmail.com.au','outlook.com','outlook.com.au',
+  'live.com','live.com.au','yahoo.com','yahoo.com.au','icloud.com','me.com','bigpond.com','bigpond.net.au',
+  'optusnet.com.au','iinet.net.au','tpg.com.au','internode.on.net','proton.me','protonmail.com','aol.com','msn.com'];
+
+  function lev(a,b){
+    if(a===b)return 0;
+    var m=a.length,n=b.length;
+    if(Math.abs(m-n)>2)return 9;
+    var prev=[],cur=[],i,j;
+    for(j=0;j<=n;j++)prev[j]=j;
+    for(i=1;i<=m;i++){
+      cur[0]=i;
+      for(j=1;j<=n;j++){
+        cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));
+      }
+      for(j=0;j<=n;j++)prev[j]=cur[j];
+    }
+    return prev[n];
+  }
+
+  function parts(v){
+    var at=v.lastIndexOf('@');
+    if(at<1)return null;
+    return {local:v.slice(0,at),domain:v.slice(at+1).toLowerCase()};
+  }
+
+  // Returns '' when fine, otherwise a translation key for the blocking error.
+  function check(v){
+    v=(v||'').trim();
+    if(v.length===0)return 'errEmailEmpty';
+    if(v.length>254)return 'errEmailInvalid';
+    if(!RE.test(v))return 'errEmailInvalid';
+    var pr=parts(v);
+    if(!pr)return 'errEmailInvalid';
+    if(pr.local.length>64)return 'errEmailInvalid';
+    var d=pr.domain, l=pr.local.toLowerCase();
+    // domain must have a label of >=2 chars before the TLD and no all-numeric TLD
+    var labels=d.split('.');
+    if(labels.length<2)return 'errEmailDomain';
+    if(labels[labels.length-2].length<2)return 'errEmailDomain';
+    if(NOREPLY.test(l))return 'errEmailNoReply';
+    for(var i=0;i<DISPOSABLE.length;i++){
+      var dd=DISPOSABLE[i];
+      if(d===dd)return 'errEmailDisposable';
+      var suffix='.'+dd;
+      if(d.length>suffix.length&&d.slice(-suffix.length)===suffix)return 'errEmailDisposable';
+    }
+    for(var k=0;k<PLACEHOLDER_DOMAINS.length;k++){
+      if(d===PLACEHOLDER_DOMAINS[k])return 'errEmailPlaceholder';
+    }
+    if(JUNK_LOCAL.test(l))return 'errEmailPlaceholder';
+    return '';
+  }
+
+  // Returns a suggested corrected address, or '' - non blocking hint only.
+  function suggest(v){
+    v=(v||'').trim();
+    if(!RE.test(v))return '';
+    var pr=parts(v);
+    if(!pr)return '';
+    var d=pr.domain;
+    for(var i=0;i<COMMON.length;i++){if(d===COMMON[i])return '';}
+    var best='',bestD=3;
+    for(var j=0;j<COMMON.length;j++){
+      var dist=lev(d,COMMON[j]);
+      if(dist<bestD){bestD=dist;best=COMMON[j];}
+    }
+    if(!best||d.length<6)return '';
+    if(bestD===1&&best.length>=7)return pr.local+'@'+best;
+    if(bestD===2&&best.length>=9&&Math.abs(d.length-best.length)<=1)return pr.local+'@'+best;
+    return '';
+  }
+
+  return {check:check,suggest:suggest};
+})();
+
+// Blocking check for link spam pasted into the free text comments box.
+function psiCommentsHasLinkSpam(v){
+  v=String(v||'');
+  if(/\[url|\[link|<a\s+href/i.test(v))return true;
+  var m=v.match(/https?:\/\/|www\./gi);
+  return !!(m&&m.length>=2);
+}
+
+// True when the submission looks automated rather than typed by a person.
+function psiBotSignals(){
+  var out=[];
+  var hp=document.getElementById('cWebsite');
+  if(hp&&hp.value.trim()!=='')out.push('HONEYPOT');
+  var secs=(Date.now()-window.__psiT0)/1000;
+  if(secs<6)out.push('FAST-SUBMIT('+secs.toFixed(1)+'s)');
+  return out;
+}
 
 var CONTACT_STEP=99;
 function getNextStep(cur){
@@ -749,7 +903,7 @@ function render(){
     var fp2=getFlowPosition();
     progressBar.style.width=(fp2.pos/fp2.total*100)+'%';
     var dynContact=t.contactSection.replace(/\d+\s*(of|de)\s*\d+/,fp2.pos+' $1 '+fp2.total);
-    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"><div class="pfield-err" id="cNameErr"></div></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email"><div class="pfield-err" id="cEmailErr"></div></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel" inputmode="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div><div class="pfield-err" id="cPhoneErr"></div></div><div class="pinput-group"><label for="cComments">'+t.commentsLabel+'</label><textarea id="cComments" class="pcomments" placeholder="'+t.commentsPh.replace(/"/g,'&quot;')+'" maxlength="1000" rows="4">'+(answers.comments||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea><div class="pcomments-count"><span id="cCommentsCount">'+(answers.comments?answers.comments.length:0)+'</span> / 1000</div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
+    content.innerHTML='<div class="pstep-label">'+dynContact+'</div><h2 class="pquestion">'+t.contactQ+'</h2><div class="phelp">'+t.contactHelp+'</div><div class="pnope" aria-hidden="true"><label for="cWebsite">Website</label><input type="text" id="cWebsite" name="website" tabindex="-1" autocomplete="off" value=""></div><div class="pinput-group"><label for="cFullName">'+t.fullNameLabel+'</label><input type="text" id="cFullName" placeholder="'+t.fullNamePh+'" value="'+(answers.fullName||'')+'" autocomplete="name"><div class="pfield-err" id="cNameErr"></div></div><div class="pinput-group"><label for="cEmail">'+t.emailLabel+'</label><input type="email" id="cEmail" placeholder="'+t.emailPh+'" value="'+(answers.email||'')+'" autocomplete="email" maxlength="254" spellcheck="false" autocapitalize="off" autocorrect="off"><div class="pfield-err" id="cEmailErr"></div><div class="pfield-hint" id="cEmailHint"></div></div><div class="pinput-group"><label for="cPhone">'+t.phoneLabel+'</label><div class="pphone-wrap"><button type="button" class="pphone-cc" id="ccBtn"><span id="ccFlag"></span><span id="ccCode"></span><span class="pphone-arrow">&#9662;</span></button><input type="tel" id="cPhone" class="pphone-input" placeholder="412 345 678" autocomplete="tel" inputmode="tel"></div><div class="pcc-dropdown" id="ccDropdown" style="display:none;"><input type="text" class="pcc-search" id="ccSearch" placeholder="Search..."><div class="pcc-list" id="ccList"></div></div><div class="pfield-err" id="cPhoneErr"></div></div><div class="pinput-group"><label for="cComments">'+t.commentsLabel+'</label><textarea id="cComments" class="pcomments" placeholder="'+t.commentsPh.replace(/"/g,'&quot;')+'" maxlength="1000" rows="4">'+(answers.comments||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea><div class="pcomments-count"><span id="cCommentsCount">'+(answers.comments?answers.comments.length:0)+'</span> / 1000</div><div class="pfield-err" id="cCommentsErr"></div></div><div id="cErr" style="color:#b3261e;font-size:13px;margin-top:10px;min-height:18px;"></div>';
     var nameInput=document.getElementById('cFullName');
     var emailInput=document.getElementById('cEmail');
     var phoneEl=document.getElementById('cPhone');
@@ -871,10 +1025,11 @@ function render(){
       return '';
     }
     function validateEmail(v){
-      v=v.trim();
-      if(v.length===0)return t.errEmailEmpty;
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v))return t.errEmailInvalid;
-      return '';
+      var key=PSI_EMAIL.check(v);
+      return key?(t[key]||t.errEmailInvalid):'';
+    }
+    function validateComments(v){
+      return psiCommentsHasLinkSpam(v)?t.errCommentsLinks:'';
     }
     function validatePhone(v){
       v=v.trim();
@@ -888,15 +1043,35 @@ function render(){
       if(msg){errEl.textContent=msg;errEl.style.display='block';input.classList.add('pinput-invalid');}
       else{errEl.textContent='';errEl.style.display='none';input.classList.remove('pinput-invalid');}
     }
+    var emailHintEl=document.getElementById('cEmailHint');
+    var commentsErrEl=document.getElementById('cCommentsErr');
+    function showEmailHint(v,blocked){
+      if(!emailHintEl)return;
+      var sug=blocked?'':PSI_EMAIL.suggest(v);
+      if(sug){
+        emailHintEl.innerHTML=t.emailTypoHint+' <strong>'+sug.replace(/</g,'&lt;')+'</strong>?<button type="button" id="cEmailFix">'+t.emailTypoUse+'</button>';
+        emailHintEl.style.display='block';
+        var fix=document.getElementById('cEmailFix');
+        if(fix)fix.onclick=function(){emailInput.value=sug;touched.email=true;validate();emailInput.focus();};
+      }else{
+        emailHintEl.innerHTML='';
+        emailHintEl.style.display='none';
+      }
+    }
     var validate=function(){
       var nameMsg=validateName(nameInput.value);
       var emailMsg=validateEmail(emailInput.value);
       var phoneMsg=validatePhone(phoneEl.value);
+      var cEl=document.getElementById('cComments');
+      var commentsMsg=cEl?validateComments(cEl.value):'';
       if(touched.name)showFieldError(nameInput,nameErrEl,nameMsg);
       if(touched.email)showFieldError(emailInput,emailErrEl,emailMsg);
       if(touched.phone)showFieldError(phoneEl,phoneErrEl,phoneMsg);
-      nextBtn.disabled=!(!nameMsg&&!emailMsg&&!phoneMsg);
-      return !nameMsg&&!emailMsg&&!phoneMsg;
+      if(cEl&&commentsErrEl)showFieldError(cEl,commentsErrEl,commentsMsg);
+      showEmailHint(emailInput.value,!!emailMsg);
+      var ok=!nameMsg&&!emailMsg&&!phoneMsg&&!commentsMsg;
+      nextBtn.disabled=!ok;
+      return ok;
     };
     nameInput.addEventListener('input',function(){validate();});
     emailInput.addEventListener('input',function(){validate();});
@@ -913,6 +1088,7 @@ function render(){
     if(commentsEl&&commentsCountEl){
       commentsEl.addEventListener('input',function(){
         commentsCountEl.textContent=commentsEl.value.length;
+        validate();
       });
     }
     validate();
@@ -931,6 +1107,7 @@ function render(){
       answers.email=emailInput.value.trim();
       answers.phone=selCC.d+' '+phoneEl.value.trim();
       answers.comments=commentsEl?commentsEl.value.trim().substring(0,1000):'';
+      window.__psiBot=psiBotSignals();
       step=CONTACT_STEP+1;
       nextBtn.onclick=defaultNextHandler;
       render();
@@ -1119,6 +1296,10 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
   try{
     var f=document.getElementById('wf-psi-form');
     if(!f){return;}
+    // A filled honeypot means a script, not a person. Show the results on
+    // screen as normal but never post it through to the Webflow inbox.
+    var botSignals=window.__psiBot||[];
+    if(botSignals.indexOf('HONEYPOT')!==-1){return;}
     var setField=function(id,val){var el=document.getElementById(id);if(el)el.value=val||'';};
     setField('psi-full-name',answers.fullName);
     setField('psi-email',answers.email);
@@ -1129,6 +1310,7 @@ function sendAssessment(verdictTitle,verdictText,findings,nextSteps,t){
     setField('psi-verdict-text',verdictText);
     var sep=' --- ';
     var report='';
+    if(botSignals.length){report+='SPAM-CHECK: '+botSignals.join(' ')+sep;}
     report+='PHONE: '+(answers.phone||'N/A');
     report+=sep;
     report+='COMMENTS: '+(answers.comments||'(none provided)');
