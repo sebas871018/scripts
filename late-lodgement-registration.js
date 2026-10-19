@@ -183,14 +183,18 @@
     if (value) el.value = value;
   }
 
-  function hiddenField(form, name, dataName) {
+  // The notification email lists fields in DOM order, so a hidden field can
+  // be placed after a given element to keep its line next to the answers it
+  // summarises; otherwise it goes at the end of the form.
+  function hiddenField(form, name, dataName, after) {
     var el = form.querySelector('input[type="hidden"][name="' + name + '"]');
     if (!el) {
       el = document.createElement('input');
       el.type = 'hidden';
       el.name = name;
       el.setAttribute('data-name', dataName);
-      form.appendChild(el);
+      if (after && after.parentNode) after.parentNode.insertBefore(el, after.nextSibling);
+      else form.appendChild(el);
     }
     return el;
   }
@@ -224,16 +228,32 @@
     var clientYes  = document.getElementById('llr-client-yes');
     var clientNo   = document.getElementById('llr-client-no');
 
-    label(priorYes,  'All prior-year returns lodged', 'Yes');
-    label(priorNo,   'All prior-year returns lodged', 'No');
-    label(clientYes, 'Existing Y&S client', 'Yes');
-    label(clientNo,  'Existing Y&S client', 'No');
+    // Email labels mirror the question and option wording shown on the page.
+    var PRIOR_Q  = "Are all your previous years' tax returns lodged?";
+    var CLIENT_Q = 'Are you an existing Y&S Accounting client?';
+    label(priorYes,  PRIOR_Q,  'Yes, all lodged');
+    label(priorNo,   PRIOR_Q,  'No, some are outstanding');
+    label(clientYes, CLIENT_Q, 'Yes, existing client');
+    label(clientNo,  CLIENT_Q, 'No, new client');
+    // Webflow reports each checkbox as true/false, so the year lives in the label.
     for (var y = 0; y < yearBoxes.length; y++) {
-      label(yearBoxes[y], 'Outstanding ' + (yearBoxes[y].value || yearBoxes[y].id));
+      var yv = yearBoxes[y].value || yearBoxes[y].id;
+      label(yearBoxes[y], 'Outstanding year - ' + (yv === 'Not sure' ? 'not sure, please check' : yv));
     }
 
-    var fOutstanding = hiddenField(form, 'Outstanding-Years-Summary', 'Outstanding years (summary)');
+    // Summary sits directly under the year tick boxes in the email.
+    var fOutstanding = hiddenField(form, 'Outstanding-Years-Summary', 'Which years are outstanding?', outstanding);
     var fDeadline    = hiddenField(form, 'Deadline-Status', 'Registration deadline status');
+
+    // Fields copied from the ID form carry raw names; give them readable labels.
+    label(document.getElementById('email'), 'Email');
+    label(document.getElementById('phone'), 'Phone');
+    label(document.getElementById('Last-name'), 'Last Name');
+    label(document.getElementById('checkbox-5'), 'Bank disclaimer read');
+    label(document.getElementById('llr-auth'), 'Authorises Y&S Accounting (RAN 25818560) as tax agent');
+    label(document.getElementById('llr-ack'), 'Understands the 15 May 2027 extension conditions');
+    label(document.getElementById('llr-declare'), 'Declares the information true and complete');
+    label(document.getElementById('llr-comments'), 'Anything else we should know');
     var fSubmitted   = hiddenField(form, 'Submitted-At', 'Submitted at (Brisbane time)');
     var fVersion     = hiddenField(form, 'Form-Version', 'Form version');
     fVersion.value = FORM_VERSION;
@@ -309,8 +329,8 @@
     function applyClient() {
       var existing = isExisting();
       if (bankQLabel) bankQLabel.textContent = existing ? BANK_Q_EXISTING : BANK_Q_NEW;
-      label(bankYes, existing ? 'Bank details changed since last return' : 'Australian bank account', 'Yes');
-      label(bankNo,  existing ? 'Bank details changed since last return' : 'Australian bank account', 'No');
+      label(bankYes, existing ? BANK_Q_EXISTING : BANK_Q_NEW, 'Yes');
+      label(bankNo,  existing ? BANK_Q_EXISTING : BANK_Q_NEW, 'No');
       setActive(idWrapper, !existing);
       setActive(idExistingNote, existing);
     }
