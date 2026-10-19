@@ -41,7 +41,7 @@
       days:  function (n) { return n <= 0 ? 'Last day' : n === 1 ? '1 day left' : n + ' days left'; }
     },
     es: {
-      lead:  '¿Todavía no presentaste tu declaración de impuestos?',
+      lead:  '¿Aún no presentaste tu declaración?',
       body:  'Regístrate con nosotros antes del 31 de octubre y, si tus declaraciones anteriores están al día, preséntala hasta el 15 de mayo de 2027.',
       cta1:  'Obtener más plazo',
       cta2:  'Reservar mi declaración',
@@ -49,7 +49,7 @@
       days:  function (n) { return n <= 0 ? 'Último día' : n === 1 ? 'Queda 1 día' : 'Quedan ' + n + ' días'; }
     },
     pt: {
-      lead:  'Ainda não entregou sua declaração de imposto?',
+      lead:  'Ainda não entregou sua declaração?',
       body:  'Cadastre-se conosco até 31 de outubro e, se suas declarações anteriores estiverem em dia, entregue até 15 de maio de 2027.',
       cta1:  'Ganhar mais prazo',
       cta2:  'Agendar minha declaração',
@@ -60,9 +60,13 @@
 
   var CSS = [
     '#' + ID + '{position:fixed;top:0;left:0;right:0;z-index:1001;background:#0a1f44;color:#fff;font-family:Montserrat,"Space Grotesk",system-ui,sans-serif;box-shadow:0 2px 10px rgba(10,31,68,.25);}',
-    '#' + ID + ' .ysb-inner{max-width:1200px;margin:0 auto;padding:8px 56px 8px 24px;display:flex;align-items:center;gap:10px 20px;}',
-    '#' + ID + ' .ysb-text{flex:1 1 auto;min-width:0;font-size:14px;line-height:1.4;}',
-    '#' + ID + ' .ysb-days{display:inline-block;vertical-align:middle;margin-right:10px;background:#fed741;color:#0a1f44;font-weight:700;font-size:12px;letter-spacing:.02em;padding:3px 10px;border-radius:999px;white-space:nowrap;}',
+    // The close button is positioned against .ysb-inner, so it sits at the
+    // content edge on wide screens rather than at the viewport edge.
+    '#' + ID + ' .ysb-inner{position:relative;max-width:1200px;margin:0 auto;padding:8px 60px 8px 24px;display:flex;align-items:center;gap:10px 20px;}',
+    // Pill and copy are flex siblings, so wrapped lines align after the pill.
+    '#' + ID + ' .ysb-text{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.4;}',
+    '#' + ID + ' .ysb-days{flex:0 0 auto;background:#fed741;color:#0a1f44;font-weight:700;font-size:12px;letter-spacing:.02em;padding:3px 10px;border-radius:999px;white-space:nowrap;}',
+    '#' + ID + ' .ysb-copy{min-width:0;}',
     '#' + ID + ' .ysb-lead{font-weight:700;margin-right:6px;}',
     '#' + ID + ' .ysb-body{color:rgba(255,255,255,.88);}',
     '#' + ID + ' .ysb-actions{flex:0 0 auto;display:flex;gap:8px;}',
@@ -72,16 +76,22 @@
     '#' + ID + ' .ysb-btn-primary:hover{background:#ffe066;}',
     '#' + ID + ' .ysb-btn-ghost{color:#fff;border:1.5px solid rgba(255,255,255,.7);}',
     '#' + ID + ' .ysb-btn-ghost:hover{background:rgba(255,255,255,.12);border-color:#fff;}',
-    '#' + ID + ' .ysb-close{position:absolute;top:50%;right:12px;transform:translateY(-50%);width:32px;height:32px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:22px;line-height:32px;text-align:center;cursor:pointer;opacity:.75;padding:0;}',
+    '#' + ID + ' .ysb-close{position:absolute;top:50%;right:14px;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:transparent;color:#fff;font-size:22px;line-height:36px;text-align:center;cursor:pointer;opacity:.75;padding:0;}',
     '#' + ID + ' .ysb-close:hover{opacity:1;background:rgba(255,255,255,.12);}',
     '#' + ID + ' .ysb-close:focus-visible,#' + ID + ' .ysb-btn:focus-visible{outline:2px solid #fed741;outline-offset:2px;}',
-    '@media (max-width:767px){',
-    '#' + ID + ' .ysb-inner{flex-wrap:wrap;justify-content:center;padding:10px 44px 10px 14px;gap:8px 12px;}',
-    '#' + ID + ' .ysb-text{flex:1 1 100%;font-size:13px;text-align:center;}',
+    '@media (prefers-reduced-motion:reduce){#' + ID + ' .ysb-btn{transition:none;}#' + ID + ' .ysb-btn:hover{transform:none;}}',
+    // Tablet: one row of pill + question + buttons; the explanatory line waits for the form page.
+    '@media (max-width:991px){',
     '#' + ID + ' .ysb-body{display:none;}',
+    '}',
+    // Phone: question on one row, the two buttons side by side on the next.
+    '@media (max-width:767px){',
+    '#' + ID + ' .ysb-inner{flex-wrap:wrap;justify-content:center;padding:8px 44px 8px 12px;gap:8px 12px;}',
+    '#' + ID + ' .ysb-text{flex:1 1 100%;justify-content:center;font-size:13px;}',
+    '#' + ID + ' .ysb-copy{text-align:left;}',
     '#' + ID + ' .ysb-actions{flex:1 1 100%;}',
     '#' + ID + ' .ysb-btn{flex:1 1 0;text-align:center;padding:8px 10px;font-size:12.5px;}',
-    '#' + ID + ' .ysb-close{right:6px;}',
+    '#' + ID + ' .ysb-close{right:4px;}',
     '}'
   ].join('\n');
 
@@ -127,9 +137,11 @@
 
     var inner = el('div', 'ysb-inner');
     var text  = el('div', 'ysb-text');
+    var copy  = el('span', 'ysb-copy');
+    copy.appendChild(el('span', 'ysb-lead', t.lead));
+    copy.appendChild(el('span', 'ysb-body', t.body));
     text.appendChild(el('span', 'ysb-days', t.days(daysLeft)));
-    text.appendChild(el('span', 'ysb-lead', t.lead));
-    text.appendChild(el('span', 'ysb-body', t.body));
+    text.appendChild(copy);
 
     var actions = el('div', 'ysb-actions');
     var a1 = el('a', 'ysb-btn ysb-btn-primary', t.cta1);
@@ -145,8 +157,8 @@
 
     inner.appendChild(text);
     inner.appendChild(actions);
+    inner.appendChild(close);
     bar.appendChild(inner);
-    bar.appendChild(close);
     document.body.insertBefore(bar, document.body.firstChild);
 
     // ---- Offsets: push the page and any top-anchored navbar down ----
@@ -163,14 +175,51 @@
       }
     }
 
+    // Dropdown panels that are fixed to the viewport with a hard-coded top
+    // (the Services mega menu sits at top:85px) must move down by the same
+    // amount, or they open over the navbar. Their original top is kept on a
+    // data attribute so the offset is never applied twice.
+    var panels = [];
+    for (var p = 0; p < navs.length; p++) {
+      var lists = navs[p].querySelectorAll('.w-dropdown-list');
+      for (var q = 0; q < lists.length; q++) panels.push(lists[q]);
+    }
+    function offsetPanels(h) {
+      for (var k = 0; k < panels.length; k++) {
+        var panel = panels[k];
+        var saved = panel.getAttribute('data-ysb-top');
+        if (saved === null) {
+          var pcs = getComputedStyle(panel);
+          if (pcs.position !== 'fixed' || isNaN(parseFloat(pcs.top))) continue;
+          saved = String(parseFloat(pcs.top));
+          panel.setAttribute('data-ysb-top', saved);
+        }
+        panel.style.setProperty('top', (parseFloat(saved) + h) + 'px', 'important');
+      }
+    }
+    function restorePanels() {
+      for (var k = 0; k < panels.length; k++) {
+        if (panels[k].hasAttribute('data-ysb-top')) {
+          panels[k].style.removeProperty('top');
+          panels[k].removeAttribute('data-ysb-top');
+        }
+      }
+    }
+
     function applyOffset() {
       var h = bar.offsetHeight;
       document.body.style.setProperty('padding-top', (basePad + h) + 'px', 'important');
       for (var j = 0; j < navs.length; j++) navs[j].style.setProperty('top', h + 'px', 'important');
+      offsetPanels(h);
+      // Hash links loaded directly land below the fixed stack.
+      var navH = navs.length ? navs[0].offsetHeight : 0;
+      document.documentElement.style.scrollPaddingTop = (h + navH) + 'px';
     }
     function clearOffset() {
       document.body.style.removeProperty('padding-top');
       for (var j = 0; j < navs.length; j++) navs[j].style.removeProperty('top');
+      restorePanels();
+      document.documentElement.style.scrollPaddingTop = '';
     }
 
     applyOffset();
