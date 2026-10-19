@@ -1,0 +1,464 @@
+/* ===================================================================
+   Late Lodgement Registration Form - conditional logic + styling
+   taxbne.com.au  /forms/late-lodgement-registration
+   -------------------------------------------------------------------
+   Built on cidv-residency-logic.js (Client ID Verification form).
+   The page is a Webflow duplicate of that form with one extra step
+   at the front and a declaration block at the end. The multi-step
+   engine (videsigns multi-step.js) runs with data-logic-extra="true",
+   which switches off its own required-field checks, so this script
+   validates every step itself.
+
+   1. Deadline banner in the hero: counts down to 31 October 2026
+      (Brisbane time) and switches to a "closed" notice afterwards.
+      The form stays open; a hidden field records whether the
+      registration arrived before or after the deadline.
+   2. Eligibility step:
+        All prior-year returns lodged?  No  -> shows the outstanding
+                                              years checklist (at least
+                                              one tick required).
+        Existing Y&S client?           Yes -> bank question becomes
+                                              "have your bank details
+                                              changed", the ID uploads
+                                              are skipped (we hold ID
+                                              on file) and a note shows.
+   3. Residency status (same as the ID verification form):
+        Temporary resident -> arrival, departure and visa upload shown.
+        Permanent / citizen -> those hidden, passport label accepts a
+                               driver's licence / proof of age.
+   4. Bank step: Yes -> account fields.
+                 No  -> overseas trust-account note (new clients) or
+                        "we will use the account on file" (existing).
+   5. Validates the current step before Next and the whole form
+      before Submit.
+   6. Labels every field for the Webflow notification email and adds
+      hidden summary fields (outstanding years, deadline status and
+      submission time).
+
+   Loaded via a commit-pinned jsDelivr <script> tag in the page's
+   Custom code (Before </body>).
+   ==================================================================== */
+(function () {
+  var DEADLINE_ISO   = '2026-10-31T23:59:59+10:00';   // Brisbane, no daylight saving
+  var DEADLINE_LABEL = 'Saturday 31 October 2026';
+  var FORM_ID        = 'wf-form-Late-Lodgement-Registration';
+  var FORM_VERSION   = 'llr-2026-10';
+
+  var CSS = [
+    /* ---- residency cards (same look as the ID verification form) ---- */
+    '#llr-visa-step .form_label.tittle{text-align:center;display:block;margin-bottom:1rem;}',
+    '#llr-vs-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}',
+    '@media (max-width:600px){#llr-vs-grid{grid-template-columns:1fr;}}',
+    '#llr-vs-grid .f-radio-butn-field-1{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:1.5rem 1.25rem;min-height:160px;border:2px solid rgba(0,0,0,0.16);border-radius:12px;background:#fff;cursor:pointer;transition:.2s;margin:0;}',
+    '#llr-vs-grid .f-radio-butn-field-1:hover{border-color:rgba(10,31,68,0.5);}',
+    '#llr-vs-grid .w-radio-input{position:absolute !important;opacity:0 !important;width:1px;height:1px;margin:0;padding:0;pointer-events:none;}',
+    '#llr-vs-grid .w-form-label{display:block;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.125rem;line-height:1.4;color:#060606;margin:0;padding:0;max-width:100%;}',
+    '#llr-vs-grid .f-radio-butn-field-1::before{font-size:2rem;line-height:1;}',
+    '#llr-vs-grid .f-radio-butn-field-1:has(#residency-temp)::before{content:"\\2708\\FE0F";}',
+    '#llr-vs-grid .f-radio-butn-field-1:has(#residency-perm)::before{content:"\\1F3E0";}',
+    '#llr-vs-grid .f-radio-butn-field-1:has(input:checked){background:#0a1f44;border-color:#0a1f44;box-shadow:0 8px 20px rgba(10,31,68,0.18);}',
+    '#llr-vs-grid .f-radio-butn-field-1:has(input:checked) .w-form-label{color:#f6f8ff;}',
+
+    /* ---- eligibility cards ---- */
+    '#llr-elig-step .form_label.tittle{text-align:center;display:block;margin-bottom:1rem;}',
+    '.llr-card{position:relative;transition:.2s;}',
+    '.llr-card input[type="radio"],.llr-card .w-radio-input{position:absolute !important;opacity:0 !important;width:1px;height:1px;margin:0;padding:0;pointer-events:none;float:none;}',
+    '.llr-card .llr-card-title,.llr-elig-title,.llr-elig-banner-date{font-family:"Space Grotesk",sans-serif;}',
+    '.llr-card:has(input:checked){background:#0a1f44;border-color:#0a1f44;box-shadow:0 8px 20px rgba(10,31,68,0.18);}',
+    '.llr-card:has(input:checked) .llr-card-title,.llr-card:has(input:checked) .llr-card-sub{color:#f6f8ff;}',
+
+    /* ---- year + declaration checkboxes (Webflow wraps them in .w-checkbox) ---- */
+    '.llr-year .w-checkbox,.llr-check .w-checkbox{display:flex;flex:none;margin:0;padding:0;align-items:center;}',
+    '.llr-year .w-checkbox::before,.llr-year .w-checkbox::after,.llr-check .w-checkbox::before,.llr-check .w-checkbox::after{display:none;}',
+    '.llr-year .w-checkbox-input,.llr-check .w-checkbox-input{float:none;margin:0;width:18px;height:18px;flex:none;}',
+    '.llr-check .w-checkbox-input{margin-top:3px;}',
+    '.llr-year .w-form-label:empty,.llr-check .w-form-label:empty{display:none;}',
+    '.llr-year:has(input:checked){background:#eef3ff;border-color:#0a1f44;}',
+    '.llr-check span{font-weight:400;}',
+
+    /* ---- hero deadline states ---- */
+    '.llr-elig-banner.is-closed .llr-elig-banner-count{background:#4b5563;}',
+    '.llr-elig-banner.is-urgent .llr-elig-banner-count{background:#e63946;animation:llrPulse 1.6s ease-in-out infinite;}',
+    '@keyframes llrPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}',
+    '#llr-late-notice{margin-bottom:16px;}',
+
+    /* ---- validation message ---- */
+    '#llr-error{margin:12px 0;padding:10px 14px;border-radius:8px;background:#fdecea;color:#8a1c1c;font-size:.95rem;}'
+  ].join('\n');
+
+  function injectStyles() {
+    if (document.getElementById('llr-style')) return;
+    var st = document.createElement('style');
+    st.id = 'llr-style';
+    st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+  injectStyles();
+
+  // ---------------------------------------------------------------
+  // Deadline banner (runs even if the form is missing)
+  // ---------------------------------------------------------------
+  function brisbaneParts(d) {
+    // Brisbane is UTC+10 all year, so shift the UTC clock by 10 hours.
+    var shifted = new Date(d.getTime() + 10 * 60 * 60 * 1000);
+    return { y: shifted.getUTCFullYear(), m: shifted.getUTCMonth(), d: shifted.getUTCDate() };
+  }
+
+  function brisbaneStamp(d) {
+    try {
+      return new Intl.DateTimeFormat('en-AU', {
+        timeZone: 'Australia/Brisbane', day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: false
+      }).format(d) + ' AEST';
+    } catch (e) {
+      return d.toISOString();
+    }
+  }
+
+  var now        = new Date();
+  var deadline   = new Date(DEADLINE_ISO);
+  var isClosed   = now.getTime() > deadline.getTime();
+  var bp         = brisbaneParts(now);
+  var daysLeft   = Math.round((Date.UTC(2026, 9, 31) - Date.UTC(bp.y, bp.m, bp.d)) / 86400000);
+
+  function paintBanner() {
+    var banner = document.getElementById('llr-deadline');
+    var count  = document.getElementById('llr-deadline-count');
+    var date   = document.getElementById('llr-deadline-date');
+    if (date) date.textContent = DEADLINE_LABEL;
+    if (!banner || !count) return;
+
+    if (isClosed) {
+      banner.classList.add('is-closed');
+      count.textContent = 'Registration for the 15 May extension closed on 31 October 2026';
+      var wrap = document.getElementById('llr-eligibility');
+      if (wrap && !document.getElementById('llr-late-notice')) {
+        var note = document.createElement('div');
+        note.id = 'llr-late-notice';
+        note.className = 'llr-warning';
+        note.textContent = 'The 31 October 2026 deadline for the 15 May 2027 extension has passed. You can still register below and we will prepare and lodge your 2025-26 return as soon as possible, but the ATO may apply a failure to lodge on time penalty, so the sooner you register the better.';
+        banner.parentNode.insertBefore(note, banner.nextSibling);
+      }
+      return;
+    }
+
+    var txt;
+    if (daysLeft <= 0)      txt = 'Last day to register';
+    else if (daysLeft === 1) txt = '1 day left to register';
+    else                     txt = daysLeft + ' days left to register';
+    count.textContent = txt;
+    if (daysLeft <= 7) banner.classList.add('is-urgent');
+  }
+
+  // ---------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------
+  // Show or hide a whole field block, and enable/disable every control
+  // inside it so it can never block validation or submission while hidden.
+  function setActive(container, active) {
+    if (!container) return;
+    container.classList.remove('llr-hidden');
+    container.style.display = active ? '' : 'none';
+    var els = container.querySelectorAll('input, select, textarea');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (!el.hasAttribute('data-llr-req')) {
+        el.setAttribute('data-llr-req', el.required ? '1' : '0');
+      }
+      if (active) {
+        el.disabled = false;
+        el.required = el.getAttribute('data-llr-req') === '1';
+      } else {
+        el.required = false;
+        el.disabled = true;
+      }
+    }
+  }
+
+  // Webflow labels a field by data-name, else name, else "Field N".
+  function label(el, dataName, value) {
+    if (!el) return;
+    el.setAttribute('data-name', dataName);
+    if (value) el.value = value;
+  }
+
+  function hiddenField(form, name, dataName) {
+    var el = form.querySelector('input[type="hidden"][name="' + name + '"]');
+    if (!el) {
+      el = document.createElement('input');
+      el.type = 'hidden';
+      el.name = name;
+      el.setAttribute('data-name', dataName);
+      form.appendChild(el);
+    }
+    return el;
+  }
+
+  function isChecked(el) { return !!(el && el.checked); }
+
+  // ---------------------------------------------------------------
+  // Form logic
+  // ---------------------------------------------------------------
+  function init() {
+    paintBanner();
+
+    var form = document.getElementById(FORM_ID);
+    if (!form) return;
+
+    // ---- Eligibility step ----
+    var priorYes   = document.getElementById('llr-prior-yes');
+    var priorNo    = document.getElementById('llr-prior-no');
+    var outstanding = document.getElementById('llr-outstanding');
+    var yearBoxes  = outstanding ? outstanding.querySelectorAll('input[type="checkbox"]') : [];
+    var clientYes  = document.getElementById('llr-client-yes');
+    var clientNo   = document.getElementById('llr-client-no');
+
+    label(priorYes,  'All prior-year returns lodged', 'Yes');
+    label(priorNo,   'All prior-year returns lodged', 'No');
+    label(clientYes, 'Existing Y&S client', 'Yes');
+    label(clientNo,  'Existing Y&S client', 'No');
+    for (var y = 0; y < yearBoxes.length; y++) {
+      label(yearBoxes[y], 'Outstanding ' + (yearBoxes[y].value || yearBoxes[y].id));
+    }
+
+    var fOutstanding = hiddenField(form, 'Outstanding-Years-Summary', 'Outstanding years (summary)');
+    var fDeadline    = hiddenField(form, 'Deadline-Status', 'Registration deadline status');
+    var fSubmitted   = hiddenField(form, 'Submitted-At', 'Submitted at (Brisbane time)');
+    var fVersion     = hiddenField(form, 'Form-Version', 'Form version');
+    fVersion.value = FORM_VERSION;
+
+    function isExisting() { return isChecked(clientYes); }
+
+    function applyPrior() {
+      setActive(outstanding, isChecked(priorNo));
+      var picked = [];
+      for (var i = 0; i < yearBoxes.length; i++) {
+        if (yearBoxes[i].checked) picked.push(yearBoxes[i].value);
+      }
+      if (isChecked(priorNo)) {
+        fOutstanding.value = picked.length ? picked.join(', ') : 'None selected';
+      } else if (isChecked(priorYes)) {
+        fOutstanding.value = 'None - all prior years lodged';
+      } else {
+        fOutstanding.value = '';
+      }
+    }
+
+    // ---- Residency status ----
+    var radios    = form.querySelectorAll('input[name="Residency-Status"]');
+    var arrival   = document.getElementById('llr-arrival-field');
+    var departure = document.getElementById('llr-departure-field');
+    var visa      = document.getElementById('llr-visa-field');
+    var passport  = document.getElementById('llr-passport-field');
+    var passNote  = document.getElementById('llr-passport-note');
+    var conditional = [arrival, departure, visa];
+    var passLabel = passport ? passport.querySelector('.form_label') : null;
+    var PASS_TEMP = 'Upload a copy of your passport (required)';
+    var PASS_PERM = "Upload your passport or Australian driver's licence / proof of age (required)";
+
+    for (var r = 0; r < radios.length; r++) radios[r].setAttribute('data-name', 'Residency status');
+
+    function currentStatus() {
+      for (var i = 0; i < radios.length; i++) {
+        if (radios[i].checked) return radios[i].value;
+      }
+      return '';
+    }
+
+    function applyVisa() {
+      var status = currentStatus();
+      var isTemp = status === 'Temporary resident';
+      var isPerm = status === 'Permanent resident or Australian citizen';
+      for (var i = 0; i < conditional.length; i++) setActive(conditional[i], isTemp);
+      if (passLabel) passLabel.textContent = isPerm ? PASS_PERM : PASS_TEMP;
+      if (passNote)  passNote.style.display = isPerm ? '' : 'none';
+    }
+
+    // ---- Existing client: bank question wording + ID uploads ----
+    var bankQuestionWrap = document.getElementById('llr-bank-question');
+    var bankQLabel = null;
+    if (bankQuestionWrap) {
+      var labels = bankQuestionWrap.querySelectorAll('label');
+      for (var q = 0; q < labels.length; q++) {
+        if (/bank account/i.test(labels[q].textContent)) { bankQLabel = labels[q]; break; }
+      }
+    }
+    var BANK_Q_NEW      = 'Do you have an Australian Bank Account?';
+    var BANK_Q_EXISTING = 'Have your bank details changed since your last tax return with us?';
+
+    var idWrapper      = document.getElementById('llr-id-wrapper');
+    var idExistingNote = document.getElementById('llr-id-existing-note');
+
+    var bankYes          = document.getElementById('bank-yes');
+    var bankNo           = document.getElementById('bank-no');
+    var bankYesFields    = document.getElementById('llr-bank-yes-fields');
+    var bankNoNote       = document.getElementById('llr-bank-no-note');
+    var bankExistingNote = document.getElementById('llr-bank-existing-note');
+
+    function applyClient() {
+      var existing = isExisting();
+      if (bankQLabel) bankQLabel.textContent = existing ? BANK_Q_EXISTING : BANK_Q_NEW;
+      label(bankYes, existing ? 'Bank details changed since last return' : 'Australian bank account', 'Yes');
+      label(bankNo,  existing ? 'Bank details changed since last return' : 'Australian bank account', 'No');
+      setActive(idWrapper, !existing);
+      setActive(idExistingNote, existing);
+    }
+
+    function applyBank() {
+      var existing = isExisting();
+      setActive(bankYesFields,    isChecked(bankYes));
+      setActive(bankNoNote,       isChecked(bankNo) && !existing);
+      setActive(bankExistingNote, isChecked(bankNo) && existing);
+    }
+
+    function applyAll() {
+      applyPrior();
+      applyClient();
+      applyVisa();
+      applyBank();
+      // The ID uploads sit inside the wrapper applyClient just toggled;
+      // applyVisa may have re-enabled the visa upload for a temporary
+      // resident, so for existing clients switch the whole block off again.
+      if (isExisting()) setActive(idWrapper, false);
+      fDeadline.value = isClosed ? 'After 31 Oct 2026 deadline' : 'Before 31 Oct 2026 deadline';
+      fSubmitted.value = brisbaneStamp(new Date());
+    }
+
+    var changeEls = [priorYes, priorNo, clientYes, clientNo, bankYes, bankNo];
+    for (var c = 0; c < changeEls.length; c++) {
+      if (changeEls[c]) changeEls[c].addEventListener('change', applyAll);
+    }
+    for (var i = 0; i < radios.length; i++) radios[i].addEventListener('change', applyAll);
+    for (var yb = 0; yb < yearBoxes.length; yb++) yearBoxes[yb].addEventListener('change', applyPrior);
+
+    // ---- Submission field names for the date inputs ----
+    var dateFields = [
+      [null,      'Date of birth'],
+      [arrival,   'Date of arrival in Australia'],
+      [departure, 'Date of departure from Australia (expected)']
+    ];
+    var dobBlock = form.querySelector('input[type="date"]');
+    if (dobBlock) label(dobBlock, dateFields[0][1]);
+    for (var d = 1; d < dateFields.length; d++) {
+      var di = dateFields[d][0] && dateFields[d][0].querySelector('input[type="date"]');
+      label(di, dateFields[d][1]);
+    }
+
+    // ---- Validation ----
+    // data-logic-extra="true" switches off the multi-step library's own
+    // required-field checks, so check the current step ourselves before
+    // allowing Next, and the whole form before allowing Submit.
+    var steps = Array.prototype.slice.call(form.querySelectorAll('[data-form="step"]'));
+
+    function fieldLabel(el) {
+      if (el.closest('.llr-check')) return 'the declaration tick boxes';
+      var wrap = el.closest('.dates, .form_field-wrapper, .form_step');
+      var lb = wrap && wrap.querySelector('.form_label');
+      var txt = lb ? lb.textContent : (el.getAttribute('data-name') || el.name || 'a required field');
+      return txt.replace(/\(required\)/i, '').trim();
+    }
+
+    function visible(el) {
+      return !!el && el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+    }
+
+    // Returns { el, msg } for the first problem in scope, or null.
+    function firstMissing(scope) {
+      // Outstanding years: at least one tick when "No, some are outstanding".
+      if (outstanding && scope.contains(outstanding) && visible(outstanding) && isChecked(priorNo)) {
+        var any = false;
+        for (var k = 0; k < yearBoxes.length; k++) if (yearBoxes[k].checked) { any = true; break; }
+        if (!any) return { el: yearBoxes[0], msg: 'Please tick at least one outstanding year, or "Not sure, please check".' };
+      }
+
+      var els = scope.querySelectorAll('input, select, textarea');
+      var seenGroups = {};
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.disabled || !el.required) continue;
+        if (el.type === 'radio') {
+          if (seenGroups[el.name]) continue;
+          seenGroups[el.name] = true;
+          if (!form.querySelector('input[type="radio"][name="' + el.name + '"]:checked')) return { el: el, msg: null };
+        } else if (el.type === 'checkbox') {
+          if (!el.checked) return { el: el, msg: null };
+        } else if (el.type === 'file') {
+          // Webflow sets data-value only once the upload has finished, and
+          // clears the input if it fails (bad type / over 10MB).
+          if (!el.getAttribute('data-value')) return { el: el, msg: null };
+        } else if (!String(el.value).trim()) {
+          return { el: el, msg: null };
+        }
+      }
+      return null;
+    }
+
+    function currentStep() {
+      for (var i = 0; i < steps.length; i++) {
+        if (getComputedStyle(steps[i]).display !== 'none') return steps[i];
+      }
+      return null;
+    }
+
+    function showError(bad) {
+      var el = bad.el;
+      var msg = bad.msg;
+      if (!msg) {
+        var uploading = el.type === 'file' && el.files && el.files.length;
+        msg = uploading
+          ? 'Your file is still uploading or failed to upload (max 10MB). Please wait or choose it again: ' + fieldLabel(el)
+          : 'Please complete: ' + fieldLabel(el);
+      }
+      var box = document.getElementById('llr-error');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'llr-error';
+        box.setAttribute('role', 'alert');
+        var nav = form.querySelector('[data-form="next-btn"]');
+        (nav && nav.parentNode ? nav.parentNode : form).insertBefore(box, nav || null);
+      }
+      box.textContent = msg;
+      box.style.display = '';
+      if (el.type !== 'file' && el.type !== 'radio' && el.type !== 'checkbox' && el.focus) {
+        try { el.focus(); } catch (e) {}
+      }
+    }
+
+    function clearError() {
+      var box = document.getElementById('llr-error');
+      if (box) box.style.display = 'none';
+    }
+
+    function block(e) { e.preventDefault(); e.stopImmediatePropagation(); }
+
+    // Capture phase so this runs before the library's own handlers.
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('[data-form="next-btn"], [data-form="submit-btn"], [data-form="back-btn"]') : null;
+      if (!t || !form.contains(t)) return;
+      applyAll();
+      if (t.getAttribute('data-form') === 'back-btn') { clearError(); return; }
+      var scope = t.getAttribute('data-form') === 'submit-btn' ? form : currentStep();
+      var bad = scope && firstMissing(scope);
+      if (bad) { block(e); showError(bad); } else { clearError(); }
+    }, true);
+
+    form.addEventListener('submit', function (e) {
+      applyAll();
+      var bad = firstMissing(form);
+      if (bad) { block(e); showError(bad); }
+    }, true);
+
+    // Re-assert after any step navigation.
+    form.querySelectorAll('[data-form="next-btn"], [data-form="back-btn"]').forEach(function (btn) {
+      btn.addEventListener('click', function () { setTimeout(applyAll, 0); });
+    });
+
+    applyAll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
