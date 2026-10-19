@@ -72,7 +72,8 @@
     '.llr-year .w-checkbox::before,.llr-year .w-checkbox::after,.llr-check .w-checkbox::before,.llr-check .w-checkbox::after{display:none;}',
     '.llr-year .w-checkbox-input,.llr-check .w-checkbox-input{float:none;margin:0;width:18px;height:18px;flex:none;}',
     '.llr-check .w-checkbox-input{margin-top:3px;}',
-    '.llr-year .w-form-label:empty,.llr-check .w-form-label:empty{display:none;}',
+    /* Webflow adds a .w-form-label span carrying the raw field name ("Agent-Authority") inside each checkbox: hide it. */
+    '.llr-year .w-checkbox .w-form-label,.llr-check .w-checkbox .w-form-label{display:none !important;}',
     '.llr-year:has(input:checked){background:#eef3ff;border-color:#0a1f44;}',
     '.llr-check span{font-weight:400;}',
 
@@ -204,6 +205,16 @@
 
     var form = document.getElementById(FORM_ID);
     if (!form) return;
+
+    // ---- Label repair ----
+    // Webflow publishes the card, year and declaration labels with for="",
+    // and an empty for attribute tells the browser the label has no control,
+    // so clicking the card text did nothing. Point each label at its input.
+    form.querySelectorAll('label.llr-card, label.llr-year, label.llr-check').forEach(function (lab) {
+      var inp = lab.querySelector('input');
+      if (inp && inp.id) lab.setAttribute('for', inp.id);
+      else lab.removeAttribute('for');
+    });
 
     // ---- Eligibility step ----
     var priorYes   = document.getElementById('llr-prior-yes');
@@ -448,9 +459,24 @@
       if (bad) { block(e); showError(bad); }
     }, true);
 
-    // Re-assert after any step navigation.
+    // Re-assert after any step navigation, and bring the new step into view
+    // (the multi-step library leaves the page scrolled to the buttons, so on a
+    // long step the person lands looking at the footer).
+    var NAV_OFFSET = 110; // clears the fixed navbar
+    function scrollToStep() {
+      var step = currentStep();
+      if (!step) return;
+      var top = step.getBoundingClientRect().top + window.pageYOffset - NAV_OFFSET;
+      try { window.scrollTo({ top: top, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, top); }
+    }
     form.querySelectorAll('[data-form="next-btn"], [data-form="back-btn"]').forEach(function (btn) {
-      btn.addEventListener('click', function () { setTimeout(applyAll, 0); });
+      btn.addEventListener('click', function () {
+        var before = currentStep();
+        setTimeout(function () {
+          applyAll();
+          if (currentStep() !== before) scrollToStep();
+        }, 0);
+      });
     });
 
     applyAll();
